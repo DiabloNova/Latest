@@ -1,52 +1,36 @@
-# AI Brand Intelligence & Visibility Platform
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Welcome to the enterprise-level repository for the **AI Brand Intelligence & Visibility Platform**.
+## Getting Started
 
-This platform represents a next-generation solution for tracking, measuring, optimizing, and improving brand presence and visibility across AI search engines, answer engines, LLMs, and generative AI platforms (e.g., ChatGPT, Claude, Gemini, Perplexity, and others).
+First, run the development server:
 
----
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## 🌟 Strategic Vision
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-The product follows a phased growth strategy:
-1.  **Phase 1 — Iran Market Focus**: Establishing absolute trust and authority as Iran's premier AI brand visibility solution, overcoming localized Persian-language LLM parsing challenges, and catering to local enterprise players.
-2.  **Phase 2 — Regional Expansion**: Scaling across the Middle East and Persian-speaking regional enterprise markets.
-3.  **Phase 3 — Global Expansion**: Building a globally recognized leader in Generative Engine Optimization (GEO) and Answer Engine Optimization (AEO).
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
----
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## 🏗️ System Blueprint & Architecture
+## Learn More
 
-The comprehensive product architecture, user flows, taxonomies, and technical frameworks have been meticulously designed and documented in our main blueprint:
+To learn more about Next.js, take a look at the following resources:
 
-👉 **[Read the Full Enterprise Architecture Blueprint (ARCHITECTURE_BLUEPRINT.md)](./ARCHITECTURE_BLUEPRINT.md)**
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Included Deliverables inside the Blueprint:
-1.  **Master Information Architecture (IA)**
-2.  **Complete Enterprise Sitemap** (covering `/platform`, `/features`, `/solutions`, `/services`, `/resources`, etc.)
-3.  **URL Taxonomy & Routing Structure** (including RTL and bilingual Persian/English pathing strategy)
-4.  **Navigation & Interface Architecture**
-5.  **Breadcrumb Strategy**
-6.  **Internal Linking Strategy & Link Equity Flow**
-7.  **Search Engine Optimization (SEO) Architecture**
-8.  **Answer Engine Optimization (AEO) Architecture**
-9.  **Generative Engine Optimization (GEO) Architecture**
-10. **Schema.org JSON-LD Semantic Mapping**
-11. **Topic Clusters & Content Silos**
-12. **Conversion & Funnel Strategy**
-13. **Development & Scalability Architecture**
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
----
+## Deploy on Vercel
 
-## 🛠️ Tech Stack & Scaffolding Strategy
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-The architectural blueprint outlines a recommended path utilizing:
-- **Framework**: React / Next.js (with App Router and SSR capabilities)
-- **Styling**: Tailwind CSS with native RTL properties support
-- **State & Sync**: Zustand and React Query (SWR)
-- **Scraper & Inference**: Distributed containerized NLP analysis queues, fine-tuned Persian tokenizer benchmarks, and vector embedding similarity checkers.
-
----
-
-## 📜 License & Security
-Information regarding licensing, data residency compliance (GDPR/CCPA/Local regulatory structures), and terms of usage can be found in the legal section of the sitemap detailed in the [Architecture Blueprint](./ARCHITECTURE_BLUEPRINT.md).
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
