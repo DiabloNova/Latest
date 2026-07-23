@@ -75,7 +75,7 @@ runTest("BrandEntity Validation & Construction", () => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (!message.includes("Domain Validation Failed")) {
-      throw new Error(`Expected domain validation failure, got: ${message}`);
+      throw new Error("Expected domain validation failure, got: " + message);
     }
     console.log("-> Successfully caught invalid brand creation: " + message);
   }
@@ -201,9 +201,9 @@ runTest("Domain Event Contract Validations", () => {
 
   console.log(`-> Dispatched Event Type: "${event.eventType}"`);
   console.log(`-> Dispatched AggId: "${event.aggregateId}"`);
-  console.log(`-> Dispatched TenantId: "${event.organizationId}"`);
+  console.log(`-> Dispatched TenantId: "${event.metadata.organizationId}"`);
 
-  if (!event.eventId.startsWith("evt-")) {
+  if (!event.metadata.eventId.startsWith("evt-")) {
     throw new Error("Event factory did not generate correct eventId signature prefix.");
   }
 });

@@ -1,17 +1,29 @@
 /**
  * Phase 7C.1 — AI Visibility Intelligence Engine
- * Enterprise Domain Event Contracts
- * Establishes a pure, implementation-agnostic message contract system for event-driven flows.
+ * Enterprise Domain Event Contracts & Metadata Specifications
  */
 
+export interface EventMetadata {
+  eventId: string; // Unique event trace ID
+  organizationId: string; // Strict tenant boundary key
+  actorId: string; // User or system identity initiating action
+  timestamp: string; // ISO-8601 creation time
+  correlationId: string; // Tracks the aggregate root trace transaction
+  causationId: string; // ID of the triggering upstream cause event
+  version: number; // Contract version
+}
+
 export interface DomainEvent<TPayload = unknown> {
-  eventId: string; // Unique UUID identifier for the event
-  eventType: string; // Event type string for routing (e.g. "aibi.brand.created.v1")
-  aggregateId: string; // ID of the Aggregate Root that produced this event
-  organizationId: string; // Strict tenant boundary partition key
-  timestamp: Date | string; // Date of event occurrence
-  version: number; // Event contract version
-  payload: TPayload; // Strict, typed event-specific data payload
+  metadata: EventMetadata;
+  eventType: string; // Event routing type key (e.g. "aibi.brand.created")
+  aggregateId: string; // ID of target Aggregate Root
+  payload: TPayload; // Structured typed payload data
+}
+
+// Event Bus Handler contract
+export interface IEventHandler<T extends DomainEvent = DomainEvent> {
+  handle(event: T): Promise<void>;
+  supports(eventType: string): boolean;
 }
 
 // 1. BrandCreatedEvent
@@ -83,9 +95,8 @@ export interface RecommendationGeneratedPayload {
 }
 export type RecommendationGeneratedEvent = DomainEvent<RecommendationGeneratedPayload>;
 
-
 /**
- * Helper factory functions to generate standard, compliant DomainEvent envelopes
+ * Event Factory supporting full tracing, correlation, and causation headers
  */
 export const DomainEventFactory = {
   create<T>(
@@ -93,16 +104,28 @@ export const DomainEventFactory = {
     aggregateId: string,
     organizationId: string,
     payload: T,
-    version: number = 1
+    actorId = "system",
+    correlationId?: string,
+    causationId?: string,
+    version = 1
   ): DomainEvent<T> {
+    const traceId = `trace-${Math.random().toString(36).substr(2, 9)}`;
     return {
-      eventId: `evt-${Math.random().toString(36).substr(2, 9)}-${Date.now().toString(36)}`,
+      metadata: {
+        eventId: `evt-${Math.random().toString(36).substr(2, 9)}`,
+        organizationId,
+        actorId,
+        timestamp: new Date().toISOString(),
+        correlationId: correlationId || traceId,
+        causationId: causationId || traceId,
+        version
+      },
       eventType,
       aggregateId,
-      organizationId,
-      timestamp: new Date().toISOString(),
-      version,
       payload
     };
   }
 };
+
+// Export event-bus sub-module directly for clean relative resolution
+export * from "./event-bus";
