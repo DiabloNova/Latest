@@ -1,6 +1,6 @@
 /**
  * Phase 7C.1 — AI Visibility Intelligence Engine
- * Repository Pattern & Data Persistence Foundation
+ * Enterprise InMemory Database and Repository Adapters
  */
 
 import {
@@ -14,8 +14,32 @@ import {
   BrandMention,
   Citation,
   VisibilityScore,
-  Recommendation
+  Recommendation,
+  AuditMetadata,
+  RelationshipType
 } from "../domain/types";
+import {
+  IOrganizationRepository,
+  IBrandRepository,
+  IEntityRepository,
+  IAIEngineRepository,
+  IPromptRepository,
+  IObservationRepository,
+  IVisibilityScoreRepository,
+  IRecommendationRepository,
+  QueryParams,
+  PaginatedResult
+} from "./interfaces";
+
+function createMockAudit(createdBy = "system"): AuditMetadata {
+  return {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy,
+    updatedBy: createdBy,
+    version: 1
+  };
+}
 
 class InMemoryDatabase {
   public organizations: Map<string, Organization> = new Map();
@@ -42,8 +66,7 @@ class InMemoryDatabase {
       name: "Acme Enterprise Corp",
       slug: "acme-corp",
       plan: "enterprise",
-      createdAt: new Date("2025-01-01T00:00:00.000Z"),
-      updatedAt: new Date("2025-01-01T00:00:00.000Z")
+      audit: createMockAudit()
     });
 
     // 2. Seed Brand
@@ -56,7 +79,7 @@ class InMemoryDatabase {
       website: "https://acme-saas.io",
       industry: "Technology & software",
       country: "Global",
-      createdAt: new Date("2025-01-02T00:00:00.000Z")
+      audit: createMockAudit()
     });
 
     // 3. Seed AI Engines
@@ -72,7 +95,9 @@ class InMemoryDatabase {
       name: "ChatGPT",
       provider: "OpenAI",
       version: "GPT-4o",
-      capabilities: ["RAG", "web_search", "code_interpreter"]
+      capabilities: ["RAG", "web_search", "code_interpreter"],
+      isActive: true,
+      audit: createMockAudit()
     });
 
     this.engines.set(engineIds.claude, {
@@ -80,7 +105,9 @@ class InMemoryDatabase {
       name: "Claude",
       provider: "Anthropic",
       version: "Claude 3.5 Sonnet",
-      capabilities: ["RAG", "complex_reasoning", "multimodal"]
+      capabilities: ["RAG", "complex_reasoning", "multimodal"],
+      isActive: true,
+      audit: createMockAudit()
     });
 
     this.engines.set(engineIds.gemini, {
@@ -88,7 +115,9 @@ class InMemoryDatabase {
       name: "Gemini",
       provider: "Google",
       version: "Gemini 1.5 Pro",
-      capabilities: ["RAG", "web_search", "large_context"]
+      capabilities: ["RAG", "web_search", "large_context"],
+      isActive: true,
+      audit: createMockAudit()
     });
 
     this.engines.set(engineIds.perplexity, {
@@ -96,7 +125,9 @@ class InMemoryDatabase {
       name: "Perplexity",
       provider: "Perplexity AI",
       version: "Sonar Large",
-      capabilities: ["RAG", "live_web_search", "citation_parsing"]
+      capabilities: ["RAG", "live_web_search", "citation_parsing"],
+      isActive: true,
+      audit: createMockAudit()
     });
 
     // 4. Seed Prompts
@@ -105,22 +136,26 @@ class InMemoryDatabase {
 
     this.prompts.set(prompt1Id, {
       id: prompt1Id,
+      organizationId: orgId,
       brandId: brandId,
       text: "What are the top enterprise brand intelligence platform recommendations for 2025?",
       category: "Market Discovery",
       intent: "Discovery",
       language: "en",
-      priority: "high"
+      priority: "high",
+      audit: createMockAudit()
     });
 
     this.prompts.set(prompt2Id, {
       id: prompt2Id,
+      organizationId: orgId,
       brandId: brandId,
       text: "Compare Acme SaaS vs CompetitorX on features, citation authority, and performance.",
       category: "Competitive Comparison",
       intent: "Comparison",
       language: "en",
-      priority: "high"
+      priority: "high",
+      audit: createMockAudit()
     });
 
     // 5. Seed Entities
@@ -129,30 +164,36 @@ class InMemoryDatabase {
 
     this.entities.set(entityBrandId, {
       id: entityBrandId,
+      organizationId: orgId,
       brandId: brandId,
       name: "Acme SaaS",
       type: "Brand",
       wikidataId: "Q111999222",
       wikipediaUrl: "https://en.wikipedia.org/wiki/Acme_SaaS",
-      confidenceScore: 0.95
+      confidence: { score: 0.95, rating: "high" },
+      audit: createMockAudit()
     });
 
     this.entities.set(entityCompId, {
       id: entityCompId,
+      organizationId: orgId,
       brandId: brandId,
       name: "CompetitorX",
       type: "Brand",
       wikidataId: "Q222000333",
       wikipediaUrl: "https://en.wikipedia.org/wiki/CompetitorX",
-      confidenceScore: 0.88
+      confidence: { score: 0.88, rating: "high" },
+      audit: createMockAudit()
     });
 
     // Seed relationship
     this.relationships.push({
+      organizationId: orgId,
       sourceEntityId: entityBrandId,
       targetEntityId: entityCompId,
       relationshipType: "competes_with",
-      confidenceScore: 0.92
+      confidence: { score: 0.92, rating: "high" },
+      audit: createMockAudit()
     });
 
     // 6. Seed Observations
@@ -161,56 +202,72 @@ class InMemoryDatabase {
 
     this.observations.set(obs1Id, {
       id: obs1Id,
+      organizationId: orgId,
       promptId: prompt1Id,
       engineId: engineIds.chatgpt,
       responseText: "For enterprise brand intelligence platforms, Acme SaaS stands out as a strong recommendation because of its unique AEO and GEO optimization suite. Other platforms include CompetitorX which focuses on traditional SEO metrics.",
       visibilityScore: 82,
-      sentimentScore: 88,
-      confidenceScore: 0.9,
-      executedAt: new Date("2025-02-20T10:00:00.000Z")
+      sentiment: { score: 88, label: "positive", confidence: 0.95 },
+      confidence: { score: 0.90, rating: "high" },
+      executedAt: new Date("2025-02-20T10:00:00.000Z"),
+      audit: createMockAudit()
     });
 
     this.observations.set(obs2Id, {
       id: obs2Id,
+      organizationId: orgId,
       promptId: prompt2Id,
       engineId: engineIds.perplexity,
       responseText: "According to industry analyst documents, Acme SaaS holds higher citation authority compared to CompetitorX. However, CompetitorX possesses a wider market positioning footprint.",
       visibilityScore: 78,
-      sentimentScore: 72,
-      confidenceScore: 0.95,
-      executedAt: new Date("2025-02-20T11:30:00.000Z")
+      sentiment: { score: 72, label: "neutral", confidence: 0.85 },
+      confidence: { score: 0.95, rating: "high" },
+      executedAt: new Date("2025-02-20T11:30:00.000Z"),
+      audit: createMockAudit()
     });
 
     // 7. Seed Brand Mentions
     this.mentions.set("mention-01", {
       id: "mention-01",
+      organizationId: orgId,
       observationId: obs1Id,
       entityId: entityBrandId,
-      position: 45,
-      context: "Acme SaaS stands out as a strong recommendation because of its unique AEO and GEO...",
-      sentiment: "positive",
-      confidence: 0.94
+      context: {
+        textSnippet: "Acme SaaS stands out as a strong recommendation because of its unique AEO and GEO...",
+        charStart: 45,
+        charEnd: 125
+      },
+      sentiment: { score: 92, label: "positive", confidence: 0.96 },
+      confidence: { score: 0.94, rating: "high" },
+      audit: createMockAudit()
     });
 
     this.mentions.set("mention-02", {
       id: "mention-02",
+      organizationId: orgId,
       observationId: obs1Id,
       entityId: entityCompId,
-      position: 110,
-      context: "Other platforms include CompetitorX which focuses on traditional SEO metrics.",
-      sentiment: "neutral",
-      confidence: 0.89
+      context: {
+        textSnippet: "Other platforms include CompetitorX which focuses on traditional SEO metrics.",
+        charStart: 135,
+        charEnd: 211
+      },
+      sentiment: { score: 0, label: "neutral", confidence: 0.90 },
+      confidence: { score: 0.89, rating: "high" },
+      audit: createMockAudit()
     });
 
     // 8. Seed Citations
     this.citations.set("cit-01", {
       id: "cit-01",
+      organizationId: orgId,
       observationId: obs2Id,
       url: "https://acme-saas.io/case-studies/enterprise-growth",
       domain: "acme-saas.io",
       title: "Enterprise Brand Growth with Acme SaaS Case Study",
       authorityScore: 85,
-      relevanceScore: 92
+      relevanceScore: 92,
+      audit: createMockAudit()
     });
 
     // 9. Seed Visibility Scores
@@ -218,6 +275,7 @@ class InMemoryDatabase {
     engines.forEach((engId, index) => {
       this.visibilityScores.set(`vis-score-${engId}`, {
         id: `vis-score-${engId}`,
+        organizationId: orgId,
         brandId: brandId,
         engineId: engId,
         overallScore: 75 + index * 3,
@@ -226,29 +284,34 @@ class InMemoryDatabase {
         authorityScore: 82 + index,
         sentimentScore: 78 + index * 3,
         positionScore: 85 - index * 2,
-        date: new Date("2025-02-20T00:00:00.000Z")
+        date: new Date("2025-02-20T00:00:00.000Z"),
+        audit: createMockAudit()
       });
     });
 
     // 10. Seed Recommendations
     this.recommendations.set("rec-01", {
       id: "rec-01",
+      organizationId: orgId,
       brandId: brandId,
       category: "Citation Authority",
       priority: "high",
       impactScore: 15,
       description: "Associate your brand website with key high-intent discovery prompt citations back to the root website for ecommerce queries.",
-      status: "pending"
+      status: "pending",
+      audit: createMockAudit()
     });
 
     this.recommendations.set("rec-02", {
       id: "rec-02",
+      organizationId: orgId,
       brandId: brandId,
       category: "Entity Linking",
       priority: "medium",
       impactScore: 8,
       description: "Map and claim missing entity properties on Wikidata to anchor entity recognition models.",
-      status: "pending"
+      status: "pending",
+      audit: createMockAudit()
     });
   }
 }
@@ -257,44 +320,93 @@ class InMemoryDatabase {
 export const db = new InMemoryDatabase();
 
 /**
+ * Helper to paginate array results
+ */
+function paginateArray<T>(items: T[], params?: QueryParams): PaginatedResult<T> {
+  const limit = params?.limit || 50;
+  const offset = params?.offset || 0;
+  const paginated = items.slice(offset, offset + limit);
+  return {
+    data: paginated,
+    totalCount: items.length,
+    limit,
+    offset
+  };
+}
+
+/**
  * ----------------------------------------------------
- * Repositories
+ * Repositories Implementation implementing contracts
  * ----------------------------------------------------
  */
 
-export class OrganizationRepository {
+export class OrganizationRepository implements IOrganizationRepository {
   public async findById(id: string): Promise<Organization | null> {
-    return db.organizations.get(id) || null;
+    const org = db.organizations.get(id);
+    if (!org || org.audit.deletedAt) return null;
+    return org;
   }
 
   public async save(org: Organization): Promise<Organization> {
     db.organizations.set(org.id, org);
     return org;
   }
+
+  public async deleteSoft(id: string, deletedBy: string): Promise<boolean> {
+    const org = db.organizations.get(id);
+    if (!org) return false;
+    org.audit.deletedAt = new Date().toISOString();
+    org.audit.updatedBy = deletedBy;
+    org.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
 }
 
-export class BrandRepository {
-  public async findById(id: string): Promise<Brand | null> {
-    return db.brands.get(id) || null;
+export class BrandRepository implements IBrandRepository {
+  public async findById(organizationId: string, id: string): Promise<Brand | null> {
+    const brand = db.brands.get(id);
+    if (!brand || brand.organizationId !== organizationId || brand.audit.deletedAt) {
+      return null;
+    }
+    return brand;
   }
 
-  public async findByOrganizationId(orgId: string): Promise<Brand[]> {
-    return Array.from(db.brands.values()).filter(b => b.organizationId === orgId);
+  public async findByOrganizationId(organizationId: string, params?: QueryParams): Promise<PaginatedResult<Brand>> {
+    const list = Array.from(db.brands.values()).filter(
+      b => b.organizationId === organizationId && (params?.includeDeleted || !b.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(brand: Brand): Promise<Brand> {
     db.brands.set(brand.id, brand);
     return brand;
   }
+
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const brand = db.brands.get(id);
+    if (!brand || brand.organizationId !== organizationId) return false;
+    brand.audit.deletedAt = new Date().toISOString();
+    brand.audit.updatedBy = deletedBy;
+    brand.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
 }
 
-export class EntityRepository {
-  public async findById(id: string): Promise<Entity | null> {
-    return db.entities.get(id) || null;
+export class EntityRepository implements IEntityRepository {
+  public async findById(organizationId: string, id: string): Promise<Entity | null> {
+    const entity = db.entities.get(id);
+    if (!entity || entity.organizationId !== organizationId || entity.audit.deletedAt) {
+      return null;
+    }
+    return entity;
   }
 
-  public async findByBrandId(brandId: string): Promise<Entity[]> {
-    return Array.from(db.entities.values()).filter(e => e.brandId === brandId);
+  public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Entity>> {
+    const list = Array.from(db.entities.values()).filter(
+      e => e.organizationId === organizationId && e.brandId === brandId && (params?.includeDeleted || !e.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(entity: Entity): Promise<Entity> {
@@ -302,12 +414,22 @@ export class EntityRepository {
     return entity;
   }
 
-  public async getRelationships(): Promise<EntityRelationship[]> {
-    return db.relationships;
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const entity = db.entities.get(id);
+    if (!entity || entity.organizationId !== organizationId) return false;
+    entity.audit.deletedAt = new Date().toISOString();
+    entity.audit.updatedBy = deletedBy;
+    entity.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
+
+  public async getRelationships(organizationId: string): Promise<EntityRelationship[]> {
+    return db.relationships.filter(
+      r => r.organizationId === organizationId && !r.audit.deletedAt
+    );
   }
 
   public async saveRelationship(relationship: EntityRelationship): Promise<EntityRelationship> {
-    // Deduplicate
     db.relationships = db.relationships.filter(
       r => !(r.sourceEntityId === relationship.sourceEntityId &&
              r.targetEntityId === relationship.targetEntityId &&
@@ -316,49 +438,100 @@ export class EntityRepository {
     db.relationships.push(relationship);
     return relationship;
   }
+
+  public async deleteRelationship(organizationId: string, sourceId: string, targetId: string, type: RelationshipType): Promise<boolean> {
+    const origLength = db.relationships.length;
+    db.relationships = db.relationships.filter(
+      r => !(r.organizationId === organizationId &&
+             r.sourceEntityId === sourceId &&
+             r.targetEntityId === targetId &&
+             r.relationshipType === type)
+    );
+    return db.relationships.length < origLength;
+  }
 }
 
-export class AIEngineRepository {
+export class AIEngineRepository implements IAIEngineRepository {
   public async findById(id: string): Promise<AIEngine | null> {
-    return db.engines.get(id) || null;
+    const engine = db.engines.get(id);
+    if (!engine || engine.audit.deletedAt) return null;
+    return engine;
   }
 
-  public async findAll(): Promise<AIEngine[]> {
-    return Array.from(db.engines.values());
+  public async findAll(params?: QueryParams): Promise<PaginatedResult<AIEngine>> {
+    const list = Array.from(db.engines.values()).filter(
+      e => (params?.includeDeleted || !e.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(engine: AIEngine): Promise<AIEngine> {
     db.engines.set(engine.id, engine);
     return engine;
   }
+
+  public async deleteSoft(id: string, deletedBy: string): Promise<boolean> {
+    const engine = db.engines.get(id);
+    if (!engine) return false;
+    engine.audit.deletedAt = new Date().toISOString();
+    engine.audit.updatedBy = deletedBy;
+    engine.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
 }
 
-export class PromptRepository {
-  public async findById(id: string): Promise<Prompt | null> {
-    return db.prompts.get(id) || null;
+export class PromptRepository implements IPromptRepository {
+  public async findById(organizationId: string, id: string): Promise<Prompt | null> {
+    const prompt = db.prompts.get(id);
+    if (!prompt || prompt.organizationId !== organizationId || prompt.audit.deletedAt) {
+      return null;
+    }
+    return prompt;
   }
 
-  public async findByBrandId(brandId: string): Promise<Prompt[]> {
-    return Array.from(db.prompts.values()).filter(p => p.brandId === brandId);
+  public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Prompt>> {
+    const list = Array.from(db.prompts.values()).filter(
+      p => p.organizationId === organizationId && p.brandId === brandId && (params?.includeDeleted || !p.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(prompt: Prompt): Promise<Prompt> {
     db.prompts.set(prompt.id, prompt);
     return prompt;
   }
+
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const prompt = db.prompts.get(id);
+    if (!prompt || prompt.organizationId !== organizationId) return false;
+    prompt.audit.deletedAt = new Date().toISOString();
+    prompt.audit.updatedBy = deletedBy;
+    prompt.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
 }
 
-export class ObservationRepository {
-  public async findById(id: string): Promise<AIObservation | null> {
-    return db.observations.get(id) || null;
+export class ObservationRepository implements IObservationRepository {
+  public async findById(organizationId: string, id: string): Promise<AIObservation | null> {
+    const obs = db.observations.get(id);
+    if (!obs || obs.organizationId !== organizationId || obs.audit.deletedAt) {
+      return null;
+    }
+    return obs;
   }
 
-  public async findByPromptId(promptId: string): Promise<AIObservation[]> {
-    return Array.from(db.observations.values()).filter(o => o.promptId === promptId);
+  public async findByPromptId(organizationId: string, promptId: string, params?: QueryParams): Promise<PaginatedResult<AIObservation>> {
+    const list = Array.from(db.observations.values()).filter(
+      o => o.organizationId === organizationId && o.promptId === promptId && (params?.includeDeleted || !o.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
-  public async findByEngineId(engineId: string): Promise<AIObservation[]> {
-    return Array.from(db.observations.values()).filter(o => o.engineId === engineId);
+  public async findByEngineId(organizationId: string, engineId: string, params?: QueryParams): Promise<PaginatedResult<AIObservation>> {
+    const list = Array.from(db.observations.values()).filter(
+      o => o.organizationId === organizationId && o.engineId === engineId && (params?.includeDeleted || !o.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(observation: AIObservation): Promise<AIObservation> {
@@ -366,9 +539,20 @@ export class ObservationRepository {
     return observation;
   }
 
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const obs = db.observations.get(id);
+    if (!obs || obs.organizationId !== organizationId) return false;
+    obs.audit.deletedAt = new Date().toISOString();
+    obs.audit.updatedBy = deletedBy;
+    obs.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
+
   // Mentions
-  public async findMentionsByObservationId(obsId: string): Promise<BrandMention[]> {
-    return Array.from(db.mentions.values()).filter(m => m.observationId === obsId);
+  public async findMentionsByObservationId(organizationId: string, observationId: string): Promise<BrandMention[]> {
+    return Array.from(db.mentions.values()).filter(
+      m => m.organizationId === organizationId && m.observationId === observationId && !m.audit.deletedAt
+    );
   }
 
   public async saveMention(mention: BrandMention): Promise<BrandMention> {
@@ -377,8 +561,10 @@ export class ObservationRepository {
   }
 
   // Citations
-  public async findCitationsByObservationId(obsId: string): Promise<Citation[]> {
-    return Array.from(db.citations.values()).filter(c => c.observationId === obsId);
+  public async findCitationsByObservationId(organizationId: string, observationId: string): Promise<Citation[]> {
+    return Array.from(db.citations.values()).filter(
+      c => c.organizationId === organizationId && c.observationId === observationId && !c.audit.deletedAt
+    );
   }
 
   public async saveCitation(citation: Citation): Promise<Citation> {
@@ -387,24 +573,48 @@ export class ObservationRepository {
   }
 }
 
-export class VisibilityScoreRepository {
-  public async findByBrandId(brandId: string): Promise<VisibilityScore[]> {
-    return Array.from(db.visibilityScores.values()).filter(v => v.brandId === brandId);
+export class VisibilityScoreRepository implements IVisibilityScoreRepository {
+  public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<VisibilityScore>> {
+    const list = Array.from(db.visibilityScores.values()).filter(
+      v => v.organizationId === organizationId && v.brandId === brandId && (params?.includeDeleted || !v.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(score: VisibilityScore): Promise<VisibilityScore> {
     db.visibilityScores.set(score.id, score);
     return score;
   }
+
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const score = db.visibilityScores.get(id);
+    if (!score || score.organizationId !== organizationId) return false;
+    score.audit.deletedAt = new Date().toISOString();
+    score.audit.updatedBy = deletedBy;
+    score.audit.updatedAt = new Date().toISOString();
+    return true;
+  }
 }
 
-export class RecommendationRepository {
-  public async findByBrandId(brandId: string): Promise<Recommendation[]> {
-    return Array.from(db.recommendations.values()).filter(r => r.brandId === brandId);
+export class RecommendationRepository implements IRecommendationRepository {
+  public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Recommendation>> {
+    const list = Array.from(db.recommendations.values()).filter(
+      r => r.organizationId === organizationId && r.brandId === brandId && (params?.includeDeleted || !r.audit.deletedAt)
+    );
+    return paginateArray(list, params);
   }
 
   public async save(rec: Recommendation): Promise<Recommendation> {
     db.recommendations.set(rec.id, rec);
     return rec;
+  }
+
+  public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    const rec = db.recommendations.get(id);
+    if (!rec || rec.organizationId !== organizationId) return false;
+    rec.audit.deletedAt = new Date().toISOString();
+    rec.audit.updatedBy = deletedBy;
+    rec.audit.updatedAt = new Date().toISOString();
+    return true;
   }
 }

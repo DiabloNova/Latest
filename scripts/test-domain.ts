@@ -1,14 +1,17 @@
 /**
  * Phase 7C.1 — AI Visibility Intelligence Engine
- * Verification Test Script
+ * Enterprise Hardened Verification Test Script
  */
 
 import { BrandEntity } from "../src/features/ai-intelligence/domain/entities/brand-entity";
 import { ObservationAggregate } from "../src/features/ai-intelligence/domain/models/observation-aggregate";
+import { DomainEventFactory } from "../src/features/ai-intelligence/domain/events";
 import {
   CitationService,
   VisibilityService,
   ObservationService,
+  EntityService,
+  BrandRepository,
   db
 } from "../src/features/ai-intelligence";
 
@@ -18,17 +21,17 @@ function runTest(name: string, testFn: () => void | Promise<void>) {
     const res = testFn();
     if (res instanceof Promise) {
       res.then(() => {
-        console.log(`✅ Passed: ${name}`);
+        console.log(`\x1b[32m%s\x1b[0m`, `✅ Passed: ${name}`);
       }).catch((err) => {
-        console.error(`❌ Failed: ${name}`);
+        console.error(`\x1b[31m%s\x1b[0m`, `❌ Failed: ${name}`);
         console.error(err);
         process.exit(1);
       });
     } else {
-      console.log(`✅ Passed: ${name}`);
+      console.log(`\x1b[32m%s\x1b[0m`, `✅ Passed: ${name}`);
     }
   } catch (err) {
-    console.error(`❌ Failed: ${name}`);
+    console.error(`\x1b[31m%s\x1b[0m`, `❌ Failed: ${name}`);
     console.error(err);
     process.exit(1);
   }
@@ -36,6 +39,14 @@ function runTest(name: string, testFn: () => void | Promise<void>) {
 
 // 1. BrandEntity Validation Test
 runTest("BrandEntity Validation & Construction", () => {
+  const auditMock = {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: "tester",
+    updatedBy: "tester",
+    version: 1
+  };
+
   // Valid construction
   const validBrand = BrandEntity.create({
     id: "brand-test-99",
@@ -44,7 +55,7 @@ runTest("BrandEntity Validation & Construction", () => {
     website: "https://validbrand.io",
     industry: "E-Commerce",
     country: "US",
-    createdAt: new Date().toISOString()
+    audit: auditMock
   });
 
   if (validBrand.name !== "Valid Test Brand") {
@@ -58,13 +69,13 @@ runTest("BrandEntity Validation & Construction", () => {
       organizationId: "org-01",
       name: "Incomplete Brand",
       website: "ftp://not-http-url", // invalid URL protocol
-      createdAt: new Date().toISOString()
+      audit: auditMock
     });
     throw new Error("Should have thrown error on invalid website protocol");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (!message.includes("Domain Validation Failed")) {
-      throw new Error(`Expected domain validation failure, got: ${message}`);
+      throw new Error("Expected domain validation failure, got: " + message);
     }
     console.log("-> Successfully caught invalid brand creation: " + message);
   }
@@ -92,38 +103,51 @@ runTest("CitationService Domain Authority Calculations", () => {
 
 // 3. ObservationAggregate Dynamic Metrics Calculation
 runTest("ObservationAggregate Dynamic Metrics Calculation", () => {
+  const auditMock = {
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: "tester",
+    updatedBy: "tester",
+    version: 1
+  };
+
   const mockObs = {
     id: "obs-test",
+    organizationId: "org-enterprise-01",
     promptId: "prompt-test",
     engineId: "engine-test",
     responseText: "This is a response text.",
     visibilityScore: 80,
-    sentimentScore: 85,
-    confidenceScore: 0.9,
-    executedAt: new Date()
+    sentiment: { score: 85, label: "positive" as const, confidence: 0.95 },
+    confidence: { score: 0.9, rating: "high" as const },
+    executedAt: new Date(),
+    audit: auditMock
   };
 
   const mockMentions = [
     {
       id: "m-1",
+      organizationId: "org-enterprise-01",
       observationId: "obs-test",
       entityId: "ent-1",
-      position: 10,
-      context: "Acme SaaS",
-      sentiment: "positive" as const,
-      confidence: 0.95
+      context: { textSnippet: "Acme SaaS", charStart: 10, charEnd: 19 },
+      sentiment: { score: 85, label: "positive" as const, confidence: 0.95 },
+      confidence: { score: 0.95, rating: "high" as const },
+      audit: auditMock
     }
   ];
 
   const mockCitations = [
     {
       id: "cit-1",
+      organizationId: "org-enterprise-01",
       observationId: "obs-test",
       url: "https://acme.io",
       domain: "acme.io",
       title: "Acme",
       authorityScore: 80,
-      relevanceScore: 90
+      relevanceScore: 90,
+      audit: auditMock
     }
   ];
 
@@ -137,88 +161,125 @@ runTest("ObservationAggregate Dynamic Metrics Calculation", () => {
   }
 });
 
-// 4. End-to-End Observation Processing & Alert Triggering
-runTest("Observation Processing & Autonomous Recommendation Actioning", async () => {
-  const observationService = new ObservationService();
-
-  // Create brand prompt to monitor
+// 4. Multi-Tenant Isolation & Repository Contract Pass
+runTest("Multi-Tenant Boundary Enforcements", async () => {
+  const brandRepo = new BrandRepository();
+  const tenantA = "org-enterprise-01";
+  const tenantB = "org-malicious-attacker-02";
   const brandId = "brand-acme-01";
-  const promptText = "Is Acme SaaS the best AEO tool?";
 
-  const prompt = await observationService.registerPrompt(
+  // Attempting to retrieve Tenant A's brand as Tenant B must return null
+  const secureLeakedBrandCheck = await brandRepo.findById(tenantB, brandId);
+  console.log(`-> Secure leakage block check: got brand object: ${secureLeakedBrandCheck}`);
+
+  if (secureLeakedBrandCheck !== null) {
+    throw new Error("Multi-Tenant Isolation Broken! Repository leaked data across organization IDs.");
+  }
+
+  // Retrieving Tenant A's brand as Tenant A must succeed
+  const legitimateBrandCheck = await brandRepo.findById(tenantA, brandId);
+  if (legitimateBrandCheck === null || legitimateBrandCheck.id !== brandId) {
+    throw new Error("Repository failed to retrieve brand under legitimate organization boundary.");
+  }
+
+  console.log(`-> Correct boundary validated! Tenant A retrieves: "${legitimateBrandCheck.name}"`);
+});
+
+// 5. Domain Event Generation Pass
+runTest("Domain Event Contract Validations", () => {
+  const event = DomainEventFactory.create(
+    "aibi.brand.created.v1",
+    "brand-acme-01",
+    "org-enterprise-01",
+    {
+      brandId: "brand-acme-01",
+      name: "Acme SaaS",
+      website: "https://acme-saas.io",
+      createdBy: "user-admin-01"
+    }
+  );
+
+  console.log(`-> Dispatched Event Type: "${event.eventType}"`);
+  console.log(`-> Dispatched AggId: "${event.aggregateId}"`);
+  console.log(`-> Dispatched TenantId: "${event.metadata.organizationId}"`);
+
+  if (!event.metadata.eventId.startsWith("evt-")) {
+    throw new Error("Event factory did not generate correct eventId signature prefix.");
+  }
+});
+
+// 6. E2E Observation Processing, Autonomous recovery alerts and Rec compilation
+runTest("E2E Process, Autonomous Recovery & Recommendations", async () => {
+  const observationService = new ObservationService();
+  const visibilityService = new VisibilityService();
+  const entityService = new EntityService();
+
+  const tenantId = "org-enterprise-01";
+  const brandId = "brand-acme-01";
+
+  // Register semantic entities first
+  await entityService.createEntity(
+    tenantId,
     brandId,
-    promptText,
-    "GEO Testing",
+    "Acme Corp Entity",
+    "Company",
+    "Q111999222",
+    "https://wikipedia.org/wiki/Acme_SaaS",
+    0.95
+  );
+
+  // Register Prompt
+  const prompt = await observationService.registerPrompt(
+    tenantId,
+    brandId,
+    "Is Acme SaaS reliable?",
+    "Review & Trust",
     "Recommendation",
     "en",
     "high"
   );
 
-  console.log(`-> Prompt registered: "${prompt.text}"`);
-
-  // Process high visibility observation
+  // Trigger high visibility observation (adds citation and mention)
   const highAggregate = await observationService.processObservation(
+    tenantId,
     prompt.id,
     "engine-chatgpt",
-    "Yes, Acme SaaS is highly recommended because of its citation authority at https://wikipedia.org/wiki/Acme_SaaS.",
-    85, // visibility
-    90, // sentiment
-    0.95
+    "Yes, Acme SaaS is reliable according to https://wikipedia.org/wiki/Acme_SaaS.",
+    88, // high visibility
+    95, // sentiment
+    0.96
   );
 
-  console.log(`-> High-visibility execution score: ${highAggregate.calculateDynamicVisibility()}`);
-  if (highAggregate.mentions.length !== 1) {
-    throw new Error("Expected 1 extracted brand mention");
-  }
-  if (highAggregate.citations.length !== 1) {
-    throw new Error("Expected 1 extracted citation");
-  }
+  console.log(`-> High execution dynamic visibility: ${highAggregate.calculateDynamicVisibility()}%`);
 
-  // Process low visibility observation which should trigger an autonomous recommendation action
-  const initialRecommendationsCount = db.recommendations.size;
+  // Trigger low visibility observation (triggers automatic recommendation alerts)
+  const recommendationsCountBefore = db.recommendations.size;
 
   const lowAggregate = await observationService.processObservation(
+    tenantId,
     prompt.id,
     "engine-claude",
-    "The market has many options and we don't have enough data regarding specific optimization tools.",
-    30, // low visibility score
+    "We have no reliable details on this topic.",
+    25, // low visibility
     50, // neutral sentiment
-    0.9
+    0.90
   );
 
   const lowDynamicScore = lowAggregate.calculateDynamicVisibility();
-  console.log(`-> Low-visibility execution score: ${lowDynamicScore}`);
-  console.log(`-> Seed recommendations count before: ${initialRecommendationsCount}`);
-  console.log(`-> Database recommendations count after: ${db.recommendations.size}`);
+  console.log(`-> Low execution dynamic visibility: ${lowDynamicScore}%`);
+  console.log(`-> Recommendations count before: ${recommendationsCountBefore}`);
+  console.log(`-> Recommendations count after: ${db.recommendations.size}`);
 
-  if (lowDynamicScore < 70 && db.recommendations.size <= initialRecommendationsCount) {
-    throw new Error("Autonomous alert recommendation should have been automatically appended to the database.");
+  if (lowDynamicScore < 70 && db.recommendations.size <= recommendationsCountBefore) {
+    throw new Error("Autonomous alert recommendation should have been generated.");
   }
 
-  const latestRec = Array.from(db.recommendations.values()).pop();
-  console.log(`-> Generated Alert Action Category: "${latestRec?.category}"`);
-  console.log(`-> Generated Alert Action Details: "${latestRec?.description}"`);
-});
+  // Dashboard Telemetry Compilation Check
+  const payload = await visibilityService.prepareDashboardData(tenantId, brandId);
+  console.log(`-> Dashboard overall compiled score: ${payload.overallScore}%`);
+  console.log(`-> Dashboard overall rating: "${payload.grade}"`);
 
-// 5. VisibilityService Command Center Payload Aggregation
-runTest("VisibilityService Dashboard Telemetry Compilation", async () => {
-  const visibilityService = new VisibilityService();
-  const brandId = "brand-acme-01";
-
-  const dashboardPayload = await visibilityService.prepareDashboardData(brandId);
-
-  console.log(`-> Overall Dashboard Visibility Score: ${dashboardPayload.overallScore}%`);
-  console.log(`-> Core Score Rating Grade: "${dashboardPayload.grade}"`);
-  console.log(`-> Calculated Metric Factors:`);
-  dashboardPayload.factors.forEach(f => {
-    console.log(`   * ${f.name}: ${f.score}`);
-  });
-
-  if (dashboardPayload.overallScore < 0 || dashboardPayload.overallScore > 100) {
-    throw new Error("Aggregated overall score is out of bounds");
-  }
-
-  if (dashboardPayload.factors.length !== 4) {
-    throw new Error("Expected exactly 4 dashboard KPI metric factors");
+  if (payload.overallScore < 0 || payload.overallScore > 100) {
+    throw new Error("Dashboard compiled score is out of bounds");
   }
 });

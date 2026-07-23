@@ -11,6 +11,17 @@ export const visibilityScoresTable: TableDefinition = {
       description: "Unique metric log ID"
     },
     {
+      name: "organization_id",
+      type: "UUID",
+      nullable: false,
+      references: {
+        table: "organizations",
+        column: "id",
+        onDelete: "CASCADE"
+      },
+      description: "Organization (tenant) partition key"
+    },
+    {
       name: "brand_id",
       type: "UUID",
       nullable: false,
@@ -19,7 +30,7 @@ export const visibilityScoresTable: TableDefinition = {
         column: "id",
         onDelete: "CASCADE"
       },
-      description: "Monitored brand"
+      description: "Monitored brand reference"
     },
     {
       name: "engine_id",
@@ -30,52 +41,95 @@ export const visibilityScoresTable: TableDefinition = {
         column: "id",
         onDelete: "CASCADE"
       },
-      description: "AI platform engine"
+      description: "AI platform engine identifier"
     },
     {
       name: "overall_score",
       type: "INTEGER",
       nullable: false,
-      description: "Calculated composite visibility score (0 to 100)"
+      description: "Composite metric overall score (0 to 100)"
     },
     {
       name: "mention_score",
       type: "INTEGER",
       nullable: false,
-      description: "Mentions factor index score (0 to 100)"
+      description: "Mention metric component score (0 to 100)"
     },
     {
       name: "citation_score",
       type: "INTEGER",
       nullable: false,
-      description: "Citations factor index score (0 to 100)"
+      description: "Citation metric component score (0 to 100)"
     },
     {
       name: "authority_score",
       type: "INTEGER",
       nullable: false,
-      description: "Source authority factor index score (0 to 100)"
+      description: "Citation Domain Authority component score (0 to 100)"
     },
     {
       name: "sentiment_score",
       type: "INTEGER",
       nullable: false,
-      description: "Sentiment impact score (0 to 100)"
+      description: "Sentiment metric component score (0 to 100)"
     },
     {
       name: "position_score",
       type: "INTEGER",
       nullable: false,
-      description: "Response visual placement priority index (0 to 100)"
+      description: "Response structural layout component score (0 to 100)"
     },
     {
       name: "date",
       type: "TIMESTAMP",
       nullable: false,
-      description: "Log date for historical analytical charts"
+      description: "Analysis record date timestamp"
+    },
+    // Audit & Lifecycle columns
+    {
+      name: "created_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was created"
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was last updated"
+    },
+    {
+      name: "created_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that created the record"
+    },
+    {
+      name: "updated_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that last updated the record"
+    },
+    {
+      name: "deleted_at",
+      type: "TIMESTAMP",
+      nullable: true,
+      description: "Timestamp when soft-deletion occurred"
+    },
+    {
+      name: "version",
+      type: "INTEGER",
+      nullable: false,
+      default: "1",
+      description: "Optimistic locking version counter"
     }
   ],
   indexes: [
+    "CREATE INDEX idx_visibility_organization ON visibility_scores(organization_id);",
     "CREATE INDEX idx_visibility_brand ON visibility_scores(brand_id);",
     "CREATE INDEX idx_visibility_engine ON visibility_scores(engine_id);",
     "CREATE INDEX idx_visibility_date ON visibility_scores(date);"
@@ -83,6 +137,7 @@ export const visibilityScoresTable: TableDefinition = {
   sql: `
 CREATE TABLE IF NOT EXISTS visibility_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
   engine_id UUID NOT NULL REFERENCES ai_engines(id) ON DELETE CASCADE,
   overall_score INTEGER NOT NULL CHECK (overall_score >= 0 AND overall_score <= 100),
@@ -91,9 +146,16 @@ CREATE TABLE IF NOT EXISTS visibility_scores (
   authority_score INTEGER NOT NULL CHECK (authority_score >= 0 AND authority_score <= 100),
   sentiment_score INTEGER NOT NULL CHECK (sentiment_score >= 0 AND sentiment_score <= 100),
   position_score INTEGER NOT NULL CHECK (position_score >= 0 AND position_score <= 100),
-  date TIMESTAMP WITH TIME ZONE NOT NULL
+  date TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL DEFAULT 'system',
+  updated_by TEXT NOT NULL DEFAULT 'system',
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE INDEX IF NOT EXISTS idx_visibility_organization ON visibility_scores(organization_id);
 CREATE INDEX IF NOT EXISTS idx_visibility_brand ON visibility_scores(brand_id);
 CREATE INDEX IF NOT EXISTS idx_visibility_engine ON visibility_scores(engine_id);
 CREATE INDEX IF NOT EXISTS idx_visibility_date ON visibility_scores(date);

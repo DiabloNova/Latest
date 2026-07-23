@@ -1,4 +1,4 @@
-import { Brand } from "../types";
+import { Brand, AuditMetadata } from "../types";
 import { brandSchema } from "../schemas";
 
 export class BrandEntity {
@@ -38,7 +38,7 @@ export class BrandEntity {
   }
 
   /**
-   * Get brand organization ID
+   * Get brand organization ID (multi-tenant boundary key)
    */
   public get organizationId(): string {
     return this.props.organizationId;
@@ -49,6 +49,13 @@ export class BrandEntity {
    */
   public get country(): string {
     return this.props.country || "Global";
+  }
+
+  /**
+   * Get audit metadata
+   */
+  public get audit(): AuditMetadata {
+    return this.props.audit;
   }
 
   /**

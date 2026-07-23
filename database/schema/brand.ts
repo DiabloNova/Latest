@@ -19,7 +19,7 @@ export const brandsTable: TableDefinition = {
         column: "id",
         onDelete: "CASCADE"
       },
-      description: "Organization (tenant) that owns this brand"
+      description: "Organization (tenant) partition key"
     },
     {
       name: "name",
@@ -31,36 +31,72 @@ export const brandsTable: TableDefinition = {
       name: "description",
       type: "TEXT",
       nullable: true,
-      description: "General description of the brand, services, or products"
+      description: "Description of the brand"
     },
     {
       name: "website",
       type: "TEXT",
       nullable: false,
-      description: "Primary brand website URL used for RAG/citation matching"
+      description: "Primary website URL used for search matching"
     },
     {
       name: "industry",
       type: "TEXT",
       nullable: true,
-      description: "Industry category for competitive positioning"
+      description: "SaaS brand industry sector"
     },
     {
       name: "country",
       type: "TEXT",
       nullable: true,
-      description: "Target geographic market"
+      description: "Primary brand geographical location"
     },
+    // Audit & Lifecycle columns
     {
       name: "created_at",
       type: "TIMESTAMP",
       nullable: false,
       default: "NOW()",
-      description: "Timestamp when the brand record was created"
+      description: "Timestamp when the record was created"
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was last updated"
+    },
+    {
+      name: "created_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that created the record"
+    },
+    {
+      name: "updated_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that last updated the record"
+    },
+    {
+      name: "deleted_at",
+      type: "TIMESTAMP",
+      nullable: true,
+      description: "Timestamp when soft-deletion occurred"
+    },
+    {
+      name: "version",
+      type: "INTEGER",
+      nullable: false,
+      default: "1",
+      description: "Optimistic locking version counter"
     }
   ],
   indexes: [
-    "CREATE INDEX idx_brands_organization ON brands(organization_id);"
+    "CREATE INDEX idx_brands_organization ON brands(organization_id);",
+    "CREATE INDEX idx_brands_deleted_at ON brands(deleted_at) WHERE deleted_at IS NULL;"
   ],
   sql: `
 CREATE TABLE IF NOT EXISTS brands (
@@ -71,9 +107,15 @@ CREATE TABLE IF NOT EXISTS brands (
   website TEXT NOT NULL,
   industry TEXT,
   country TEXT,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL DEFAULT 'system',
+  updated_by TEXT NOT NULL DEFAULT 'system',
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE INDEX IF NOT EXISTS idx_brands_organization ON brands(organization_id);
+CREATE INDEX IF NOT EXISTS idx_brands_deleted_at ON brands(deleted_at) WHERE deleted_at IS NULL;
   `
 };

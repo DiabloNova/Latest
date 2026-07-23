@@ -16,7 +16,10 @@ import {
   PromptIntent,
   PriorityLevel,
   RecommendationStatus,
-  MentionSentiment
+  AuditMetadata,
+  ConfidenceVO,
+  SentimentVO,
+  TextContextVO
 } from "../types";
 
 export interface ValidationError {
@@ -32,9 +35,67 @@ export type ValidationResult<T> = {
   errors: ValidationError[];
 };
 
-// Type guard or safe conversion helper to avoid 'any'
 function isRecord(val: unknown): val is Record<string, unknown> {
   return typeof val === "object" && val !== null;
+}
+
+export function parseAudit(data: unknown): AuditMetadata {
+  const defaultAudit: AuditMetadata = {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: "system",
+    updatedBy: "system",
+    version: 1
+  };
+
+  if (!isRecord(data)) return defaultAudit;
+
+  return {
+    createdAt: typeof data.createdAt === "string" || data.createdAt instanceof Date ? data.createdAt : defaultAudit.createdAt,
+    updatedAt: typeof data.updatedAt === "string" || data.updatedAt instanceof Date ? data.updatedAt : defaultAudit.updatedAt,
+    createdBy: typeof data.createdBy === "string" ? data.createdBy : defaultAudit.createdBy,
+    updatedBy: typeof data.updatedBy === "string" ? data.updatedBy : defaultAudit.updatedBy,
+    deletedAt: typeof data.deletedAt === "string" || data.deletedAt instanceof Date ? data.deletedAt : undefined,
+    version: typeof data.version === "number" ? data.version : defaultAudit.version
+  };
+}
+
+export function parseConfidence(data: unknown): ConfidenceVO {
+  const defaultConfidence: ConfidenceVO = { score: 1.0, rating: "high" };
+  if (!isRecord(data)) return defaultConfidence;
+
+  const score = typeof data.score === "number" ? data.score : defaultConfidence.score;
+  let rating = data.rating as "high" | "medium" | "low";
+  if (rating !== "high" && rating !== "medium" && rating !== "low") {
+    rating = score >= 0.8 ? "high" : score >= 0.5 ? "medium" : "low";
+  }
+
+  return { score, rating };
+}
+
+export function parseSentiment(data: unknown): SentimentVO {
+  const defaultSentiment: SentimentVO = { score: 0, label: "neutral", confidence: 1.0 };
+  if (!isRecord(data)) return defaultSentiment;
+
+  const score = typeof data.score === "number" ? data.score : defaultSentiment.score;
+  let label = data.label as "positive" | "negative" | "neutral";
+  if (label !== "positive" && label !== "negative" && label !== "neutral") {
+    label = score > 15 ? "positive" : score < -15 ? "negative" : "neutral";
+  }
+  const confidence = typeof data.confidence === "number" ? data.confidence : defaultSentiment.confidence;
+
+  return { score, label, confidence };
+}
+
+export function parseTextContext(data: unknown): TextContextVO {
+  const defaultContext: TextContextVO = { textSnippet: "", charStart: 0, charEnd: 0 };
+  if (!isRecord(data)) return defaultContext;
+
+  return {
+    textSnippet: typeof data.textSnippet === "string" ? data.textSnippet : defaultContext.textSnippet,
+    charStart: typeof data.charStart === "number" ? data.charStart : defaultContext.charStart,
+    charEnd: typeof data.charEnd === "number" ? data.charEnd : defaultContext.charEnd
+  };
 }
 
 export const organizationSchema = {
@@ -44,7 +105,7 @@ export const organizationSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, name, slug, plan, createdAt } = data;
+    const { id, name, slug, plan, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required and must be a non-empty string" });
@@ -61,12 +122,18 @@ export const organizationSchema = {
       errors.push({ field: "plan", message: `Plan must be one of: ${validPlans.join(", ")}` });
     }
 
-    if (!createdAt) {
-      errors.push({ field: "createdAt", message: "createdAt date is required" });
-    }
-
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Organization };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        name: name as string,
+        slug: slug as string,
+        plan: plan as SubscriptionPlan,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -77,7 +144,7 @@ export const brandSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, organizationId, name, website } = data;
+    const { id, organizationId, name, description, website, industry, country, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
@@ -93,7 +160,20 @@ export const brandSchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Brand };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        name: name as string,
+        description: typeof description === "string" ? description : undefined,
+        website: website as string,
+        industry: typeof industry === "string" ? industry : undefined,
+        country: typeof country === "string" ? country : undefined,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -104,10 +184,13 @@ export const entitySchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, brandId, name, type, wikidataId, wikipediaUrl, confidenceScore } = data;
+    const { id, organizationId, brandId, name, type, wikidataId, wikipediaUrl, confidence, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof brandId !== "string" || !brandId.trim()) {
       errors.push({ field: "brandId", message: "brandId is required" });
@@ -117,9 +200,6 @@ export const entitySchema = {
     }
     if (typeof type !== "string" || !type.trim()) {
       errors.push({ field: "type", message: "Type is required" });
-    }
-    if (typeof confidenceScore !== "number" || confidenceScore < 0 || confidenceScore > 1) {
-      errors.push({ field: "confidenceScore", message: "Confidence score must be a number between 0.0 and 1.0" });
     }
 
     if (wikidataId !== undefined && typeof wikidataId !== "string") {
@@ -131,7 +211,21 @@ export const entitySchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Entity };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        brandId: brandId as string,
+        name: name as string,
+        type: type as string,
+        wikidataId: wikidataId as string | undefined,
+        wikipediaUrl: wikipediaUrl as string | undefined,
+        confidence: parseConfidence(confidence),
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -142,8 +236,11 @@ export const entityRelationshipSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { sourceEntityId, targetEntityId, relationshipType, confidenceScore } = data;
+    const { organizationId, sourceEntityId, targetEntityId, relationshipType, confidence, audit } = data;
 
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
+    }
     if (typeof sourceEntityId !== "string" || !sourceEntityId.trim()) {
       errors.push({ field: "sourceEntityId", message: "sourceEntityId is required" });
     }
@@ -156,12 +253,19 @@ export const entityRelationshipSchema = {
       errors.push({ field: "relationshipType", message: `Relationship type must be one of: ${validRelations.join(", ")}` });
     }
 
-    if (typeof confidenceScore !== "number" || confidenceScore < 0 || confidenceScore > 1) {
-      errors.push({ field: "confidenceScore", message: "Confidence score must be a number between 0.0 and 1.0" });
-    }
-
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as EntityRelationship };
+
+    return {
+      success: true,
+      data: {
+        organizationId: organizationId as string,
+        sourceEntityId: sourceEntityId as string,
+        targetEntityId: targetEntityId as string,
+        relationshipType: relationshipType as RelationshipType,
+        confidence: parseConfidence(confidence),
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -172,7 +276,7 @@ export const aiEngineSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, name, provider, version, capabilities } = data;
+    const { id, name, provider, version, capabilities, isActive, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
@@ -194,7 +298,19 @@ export const aiEngineSchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as AIEngine };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        name: name as AIEngineName,
+        provider: provider as string,
+        version: version as string,
+        capabilities: capabilities as string[],
+        isActive: typeof isActive === "boolean" ? isActive : true,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -205,10 +321,13 @@ export const promptSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, brandId, text, category, intent, language, priority } = data;
+    const { id, organizationId, brandId, text, category, intent, language, priority, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof brandId !== "string" || !brandId.trim()) {
       errors.push({ field: "brandId", message: "brandId is required" });
@@ -235,7 +354,21 @@ export const promptSchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Prompt };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        brandId: brandId as string,
+        text: text as string,
+        category: category as string,
+        intent: intent as PromptIntent,
+        language: language as string,
+        priority: priority as PriorityLevel,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -246,10 +379,24 @@ export const aiObservationSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, promptId, engineId, responseText, visibilityScore, sentimentScore, confidenceScore, executedAt } = data;
+    const {
+      id,
+      organizationId,
+      promptId,
+      engineId,
+      responseText,
+      visibilityScore,
+      sentiment,
+      confidence,
+      executedAt,
+      audit
+    } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof promptId !== "string" || !promptId.trim()) {
       errors.push({ field: "promptId", message: "promptId is required" });
@@ -263,18 +410,24 @@ export const aiObservationSchema = {
     if (typeof visibilityScore !== "number" || visibilityScore < 0 || visibilityScore > 100) {
       errors.push({ field: "visibilityScore", message: "visibilityScore must be between 0 and 100" });
     }
-    if (typeof sentimentScore !== "number") {
-      errors.push({ field: "sentimentScore", message: "sentimentScore must be a number" });
-    }
-    if (typeof confidenceScore !== "number" || confidenceScore < 0 || confidenceScore > 1) {
-      errors.push({ field: "confidenceScore", message: "confidenceScore must be between 0.0 and 1.0" });
-    }
-    if (!executedAt) {
-      errors.push({ field: "executedAt", message: "executedAt is required" });
-    }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as AIObservation };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        promptId: promptId as string,
+        engineId: engineId as string,
+        responseText: responseText as string,
+        visibilityScore: visibilityScore as number,
+        sentiment: parseSentiment(sentiment),
+        confidence: parseConfidence(confidence),
+        executedAt: typeof executedAt === "string" || executedAt instanceof Date ? executedAt : new Date().toISOString(),
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -285,10 +438,13 @@ export const brandMentionSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, observationId, entityId, position, context, sentiment, confidence } = data;
+    const { id, organizationId, observationId, entityId, context, sentiment, confidence, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof observationId !== "string" || !observationId.trim()) {
       errors.push({ field: "observationId", message: "observationId is required" });
@@ -296,24 +452,22 @@ export const brandMentionSchema = {
     if (typeof entityId !== "string" || !entityId.trim()) {
       errors.push({ field: "entityId", message: "entityId is required" });
     }
-    if (typeof position !== "number") {
-      errors.push({ field: "position", message: "position must be a number" });
-    }
-    if (typeof context !== "string") {
-      errors.push({ field: "context", message: "context is required" });
-    }
-
-    const validSentiments: MentionSentiment[] = ["positive", "negative", "neutral"];
-    if (typeof sentiment !== "string" || !validSentiments.includes(sentiment as MentionSentiment)) {
-      errors.push({ field: "sentiment", message: `Sentiment must be one of: ${validSentiments.join(", ")}` });
-    }
-
-    if (typeof confidence !== "number" || confidence < 0 || confidence > 1) {
-      errors.push({ field: "confidence", message: "Confidence must be between 0.0 and 1.0" });
-    }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as BrandMention };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        observationId: observationId as string,
+        entityId: entityId as string,
+        context: parseTextContext(context),
+        sentiment: parseSentiment(sentiment),
+        confidence: parseConfidence(confidence),
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -324,10 +478,13 @@ export const citationSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, observationId, url, domain, title, authorityScore, relevanceScore } = data;
+    const { id, organizationId, observationId, url, domain, title, authorityScore, relevanceScore, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof observationId !== "string" || !observationId.trim()) {
       errors.push({ field: "observationId", message: "observationId is required" });
@@ -349,7 +506,21 @@ export const citationSchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Citation };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        observationId: observationId as string,
+        url: url as string,
+        domain: domain as string,
+        title: title as string,
+        authorityScore: authorityScore as number,
+        relevanceScore: relevanceScore as number,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -362,6 +533,7 @@ export const visibilityScoreSchema = {
 
     const {
       id,
+      organizationId,
       brandId,
       engineId,
       overallScore,
@@ -370,11 +542,15 @@ export const visibilityScoreSchema = {
       authorityScore,
       sentimentScore,
       positionScore,
-      date
+      date,
+      audit
     } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof brandId !== "string" || !brandId.trim()) {
       errors.push({ field: "brandId", message: "brandId is required" });
@@ -400,12 +576,26 @@ export const visibilityScoreSchema = {
     if (typeof positionScore !== "number" || positionScore < 0 || positionScore > 100) {
       errors.push({ field: "positionScore", message: "positionScore must be between 0 and 100" });
     }
-    if (!date) {
-      errors.push({ field: "date", message: "date is required" });
-    }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as VisibilityScore };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        brandId: brandId as string,
+        engineId: engineId as string,
+        overallScore: overallScore as number,
+        mentionScore: mentionScore as number,
+        citationScore: citationScore as number,
+        authorityScore: authorityScore as number,
+        sentimentScore: sentimentScore as number,
+        positionScore: positionScore as number,
+        date: typeof date === "string" || date instanceof Date ? date : new Date().toISOString(),
+        audit: parseAudit(audit)
+      }
+    };
   }
 };
 
@@ -416,10 +606,13 @@ export const recommendationSchema = {
       return { success: false, errors: [{ field: "root", message: "Invalid data object" }] };
     }
 
-    const { id, brandId, category, priority, impactScore, description, status } = data;
+    const { id, organizationId, brandId, category, priority, impactScore, description, status, audit } = data;
 
     if (typeof id !== "string" || !id.trim()) {
       errors.push({ field: "id", message: "ID is required" });
+    }
+    if (typeof organizationId !== "string" || !organizationId.trim()) {
+      errors.push({ field: "organizationId", message: "organizationId is required" });
     }
     if (typeof brandId !== "string" || !brandId.trim()) {
       errors.push({ field: "brandId", message: "brandId is required" });
@@ -446,6 +639,20 @@ export const recommendationSchema = {
     }
 
     if (errors.length > 0) return { success: false, errors };
-    return { success: true, data: data as unknown as Recommendation };
+
+    return {
+      success: true,
+      data: {
+        id: id as string,
+        organizationId: organizationId as string,
+        brandId: brandId as string,
+        category: category as string,
+        priority: priority as PriorityLevel,
+        impactScore: impactScore as number,
+        description: description as string,
+        status: status as RecommendationStatus,
+        audit: parseAudit(audit)
+      }
+    };
   }
 };

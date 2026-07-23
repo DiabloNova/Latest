@@ -1,18 +1,19 @@
 import { Citation } from "../domain/types";
+import { IObservationRepository } from "../repositories/interfaces";
 import { ObservationRepository } from "../repositories";
 
 export class CitationService {
-  private obsRepo: ObservationRepository;
+  private obsRepo: IObservationRepository;
 
-  constructor(obsRepo?: ObservationRepository) {
+  constructor(obsRepo?: IObservationRepository) {
     this.obsRepo = obsRepo || new ObservationRepository();
   }
 
   /**
    * Resolve citations linked to a response observation event
    */
-  public async analyzeCitations(observationId: string): Promise<Citation[]> {
-    return this.obsRepo.findCitationsByObservationId(observationId);
+  public async analyzeCitations(organizationId: string, observationId: string): Promise<Citation[]> {
+    return this.obsRepo.findCitationsByObservationId(organizationId, observationId);
   }
 
   /**
@@ -37,7 +38,7 @@ export class CitationService {
     if (domain.endsWith(".gov")) return 98;
     if (domain.endsWith(".edu")) return 95;
 
-    // Core high trust sources
+    // Core trusted sources
     const authorityMap: Record<string, number> = {
       "wikipedia.org": 96,
       "github.com": 92,
@@ -69,25 +70,35 @@ export class CitationService {
   }
 
   /**
-   * Create and record a new citation linked to an observation response
+   * Create and record a new citation linked to an observation response inside a tenant boundary
    */
   public async addCitation(
+    organizationId: string,
     observationId: string,
     url: string,
     title: string,
-    relevanceScore: number = 80
+    relevanceScore: number = 80,
+    actorId = "system"
   ): Promise<Citation> {
     const domain = this.extractDomain(url);
     const authorityScore = this.calculateAuthorityScore(url);
 
     const citation: Citation = {
       id: `cit-${Math.random().toString(36).substr(2, 9)}`,
+      organizationId,
       observationId,
       url,
       domain,
       title,
       authorityScore,
-      relevanceScore: Math.min(Math.max(relevanceScore, 0), 100)
+      relevanceScore: Math.min(Math.max(relevanceScore, 0), 100),
+      audit: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: actorId,
+        updatedBy: actorId,
+        version: 1
+      }
     };
 
     return this.obsRepo.saveCitation(citation);
