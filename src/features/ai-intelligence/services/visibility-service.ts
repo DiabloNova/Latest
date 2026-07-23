@@ -1,4 +1,5 @@
 import { VisibilityScore } from "../domain/types";
+import { IVisibilityScoreRepository, IAIEngineRepository } from "../repositories/interfaces";
 import { VisibilityScoreRepository, AIEngineRepository } from "../repositories";
 
 export interface AggregateEngineScore {
@@ -18,10 +19,10 @@ export interface BrandDashboardPayload {
 }
 
 export class VisibilityService {
-  private visRepo: VisibilityScoreRepository;
-  private engineRepo: AIEngineRepository;
+  private visRepo: IVisibilityScoreRepository;
+  private engineRepo: IAIEngineRepository;
 
-  constructor(visRepo?: VisibilityScoreRepository, engineRepo?: AIEngineRepository) {
+  constructor(visRepo?: IVisibilityScoreRepository, engineRepo?: IAIEngineRepository) {
     this.visRepo = visRepo || new VisibilityScoreRepository();
     this.engineRepo = engineRepo || new AIEngineRepository();
   }
@@ -38,36 +39,50 @@ export class VisibilityService {
   }
 
   /**
-   * Record a brand visibility score
+   * Record a brand visibility score inside a tenant boundary
    */
   public async recordScore(
+    organizationId: string,
     brandId: string,
     engineId: string,
-    scores: Omit<VisibilityScore, "id" | "brandId" | "engineId">
+    scores: Omit<VisibilityScore, "id" | "organizationId" | "brandId" | "engineId" | "audit">,
+    actorId = "system"
   ): Promise<VisibilityScore> {
     const score: VisibilityScore = {
       id: `vis-${Math.random().toString(36).substr(2, 9)}`,
+      organizationId,
       brandId,
       engineId,
-      ...scores
+      ...scores,
+      audit: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: actorId,
+        updatedBy: actorId,
+        version: 1
+      }
     };
 
     return this.visRepo.save(score);
   }
 
   /**
-   * Retrieve raw visibility metric entries for a brand
+   * Retrieve raw visibility metric entries for a brand inside a tenant boundary
    */
-  public async calculateVisibilityMetrics(brandId: string): Promise<VisibilityScore[]> {
-    return this.visRepo.findByBrandId(brandId);
+  public async calculateVisibilityMetrics(organizationId: string, brandId: string): Promise<VisibilityScore[]> {
+    const res = await this.visRepo.findByBrandId(organizationId, brandId);
+    return res.data;
   }
 
   /**
-   * Aggregate brand visibility metrics partitioned by external AI Engine
+   * Aggregate brand visibility metrics partitioned by external AI Engine inside a tenant boundary
    */
-  public async aggregateEnginePerformance(brandId: string): Promise<AggregateEngineScore[]> {
-    const rawScores = await this.visRepo.findByBrandId(brandId);
-    const engines = await this.engineRepo.findAll();
+  public async aggregateEnginePerformance(organizationId: string, brandId: string): Promise<AggregateEngineScore[]> {
+    const resScores = await this.visRepo.findByBrandId(organizationId, brandId);
+    const rawScores = resScores.data;
+
+    const resEngines = await this.engineRepo.findAll();
+    const engines = resEngines.data;
 
     const aggregated: AggregateEngineScore[] = [];
 
@@ -110,11 +125,13 @@ export class VisibilityService {
   }
 
   /**
-   * High-level helper preparing telemetry state specifically for the Brand Intelligence Command Center
+   * High-level helper preparing telemetry state specifically for the Brand Intelligence Command Center inside a tenant boundary
    */
-  public async prepareDashboardData(brandId: string): Promise<BrandDashboardPayload> {
-    const rawScores = await this.visRepo.findByBrandId(brandId);
-    const engineMetrics = await this.aggregateEnginePerformance(brandId);
+  public async prepareDashboardData(organizationId: string, brandId: string): Promise<BrandDashboardPayload> {
+    const resScores = await this.visRepo.findByBrandId(organizationId, brandId);
+    const rawScores = resScores.data;
+
+    const engineMetrics = await this.aggregateEnginePerformance(organizationId, brandId);
 
     if (rawScores.length === 0) {
       return {

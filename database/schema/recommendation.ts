@@ -8,7 +8,18 @@ export const recommendationsTable: TableDefinition = {
       type: "UUID",
       nullable: false,
       primaryKey: true,
-      description: "Unique identifier for action recommendation"
+      description: "Unique action recommendation key"
+    },
+    {
+      name: "organization_id",
+      type: "UUID",
+      nullable: false,
+      references: {
+        table: "organizations",
+        column: "id",
+        onDelete: "CASCADE"
+      },
+      description: "Organization (tenant) partition key"
     },
     {
       name: "brand_id",
@@ -19,56 +30,106 @@ export const recommendationsTable: TableDefinition = {
         column: "id",
         onDelete: "CASCADE"
       },
-      description: "Target brand being optimized"
+      description: "Target brand referenced"
     },
     {
       name: "category",
       type: "TEXT",
       nullable: false,
-      description: "Target focus domain (e.g. 'Citation Authority', 'Entity Linking')"
+      description: "Action focus category group"
     },
     {
       name: "priority",
       type: "TEXT",
       nullable: false,
-      description: "Action urgency: low, medium, high"
+      description: "Priority action tier (low, medium, high)"
     },
     {
       name: "impact_score",
       type: "INTEGER",
       nullable: false,
-      description: "Predicted visibility score increase (0 to 100)"
+      description: "Predicted lift index score (0 to 100)"
     },
     {
       name: "description",
       type: "TEXT",
       nullable: false,
-      description: "Detailed actionable step text"
+      description: "Action description details text"
     },
     {
       name: "status",
       type: "TEXT",
       nullable: false,
       default: "'pending'",
-      description: "Implementation status: pending, applied, ignored"
+      description: "Implementation state status (pending, applied, ignored)"
+    },
+    // Audit & Lifecycle columns
+    {
+      name: "created_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was created"
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was last updated"
+    },
+    {
+      name: "created_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that created the record"
+    },
+    {
+      name: "updated_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that last updated the record"
+    },
+    {
+      name: "deleted_at",
+      type: "TIMESTAMP",
+      nullable: true,
+      description: "Timestamp when soft-deletion occurred"
+    },
+    {
+      name: "version",
+      type: "INTEGER",
+      nullable: false,
+      default: "1",
+      description: "Optimistic locking version counter"
     }
   ],
   indexes: [
+    "CREATE INDEX idx_recommendations_organization ON recommendations(organization_id);",
     "CREATE INDEX idx_recommendations_brand ON recommendations(brand_id);",
     "CREATE INDEX idx_recommendations_status ON recommendations(status);"
   ],
   sql: `
 CREATE TABLE IF NOT EXISTS recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
   category TEXT NOT NULL,
   priority TEXT NOT NULL,
   impact_score INTEGER NOT NULL CHECK (impact_score >= 0 AND impact_score <= 100),
   description TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'applied', 'ignored')),
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL DEFAULT 'system',
+  updated_by TEXT NOT NULL DEFAULT 'system',
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE INDEX IF NOT EXISTS idx_recommendations_organization ON recommendations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_recommendations_brand ON recommendations(brand_id);
 CREATE INDEX IF NOT EXISTS idx_recommendations_status ON recommendations(status);
   `

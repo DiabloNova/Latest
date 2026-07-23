@@ -9,11 +9,15 @@ export * from "./domain/types";
 // Validation Schemas
 export * from "./domain/schemas";
 
+// Domain Events
+export * from "./domain/events";
+
 // Domain Entities & Aggregates
 export { BrandEntity } from "./domain/entities/brand-entity";
 export { ObservationAggregate } from "./domain/models/observation-aggregate";
 
 // Repositories
+export * from "./repositories/interfaces";
 export * from "./repositories";
 
 // Services

@@ -1,4 +1,4 @@
-import { AIObservation, BrandMention, Citation, MentionSentiment } from "../types";
+import { AIObservation, BrandMention, Citation } from "../types";
 
 export class ObservationAggregate {
   constructor(
@@ -33,12 +33,12 @@ export class ObservationAggregate {
   /**
    * Determines the dominant sentiment of mentions in this response.
    */
-  public getDominantSentiment(): MentionSentiment {
+  public getDominantSentiment(): "positive" | "negative" | "neutral" {
     if (this.mentions.length === 0) return "neutral";
 
     const counts = { positive: 0, negative: 0, neutral: 0 };
     for (const mention of this.mentions) {
-      counts[mention.sentiment]++;
+      counts[mention.sentiment.label]++;
     }
 
     if (counts.positive > counts.negative && counts.positive >= counts.neutral) {
@@ -68,7 +68,7 @@ export class ObservationAggregate {
     // Mention score component: count + average confidence
     const mentionCount = Math.min(this.mentions.length, 4); // caps at 4 mentions
     const averageConfidence = this.mentions.length > 0
-      ? this.mentions.reduce((acc, m) => acc + m.confidence, 0) / this.mentions.length
+      ? this.mentions.reduce((acc, m) => acc + m.confidence.score, 0) / this.mentions.length
       : 0;
     const mentionComponent = ((mentionCount / 4) * 15) + (averageConfidence * 15);
 

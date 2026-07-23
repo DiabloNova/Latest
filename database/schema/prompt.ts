@@ -8,42 +8,102 @@ export const aiEnginesTable: TableDefinition = {
       type: "UUID",
       nullable: false,
       primaryKey: true,
-      description: "Unique identifier for the external AI model engine"
+      description: "Unique identifier for the external model engine"
     },
     {
       name: "name",
       type: "TEXT",
       nullable: false,
-      description: "Name of ecosystem (e.g. 'ChatGPT', 'Claude', 'Gemini', 'Perplexity')"
+      description: "Generative platform ecosystem (ChatGPT, Claude, Gemini, Perplexity)"
     },
     {
       name: "provider",
       type: "TEXT",
       nullable: false,
-      description: "Company provider (e.g., 'OpenAI', 'Anthropic')"
+      description: "Creator provider company"
     },
     {
       name: "version",
       type: "TEXT",
       nullable: false,
-      description: "Version identifier (e.g., 'gpt-4o', 'claude-3-5-sonnet')"
+      description: "Exact model release version reference"
     },
     {
       name: "capabilities",
       type: "TEXT[]",
       nullable: false,
-      description: "Capabilities (e.g., RAG, web_search, citation_parsing)"
+      description: "Capabilities tags (e.g. RAG, web_search, citations)"
+    },
+    {
+      name: "is_active",
+      type: "BOOLEAN",
+      nullable: false,
+      default: "TRUE",
+      description: "Active monitoring indicator status flag"
+    },
+    // Audit & Lifecycle columns
+    {
+      name: "created_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was created"
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was last updated"
+    },
+    {
+      name: "created_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that created the record"
+    },
+    {
+      name: "updated_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that last updated the record"
+    },
+    {
+      name: "deleted_at",
+      type: "TIMESTAMP",
+      nullable: true,
+      description: "Timestamp when soft-deletion occurred"
+    },
+    {
+      name: "version",
+      type: "INTEGER",
+      nullable: false,
+      default: "1",
+      description: "Optimistic locking version counter"
     }
   ],
-  indexes: [],
+  indexes: [
+    "CREATE INDEX idx_engines_is_active ON ai_engines(is_active) WHERE deleted_at IS NULL;"
+  ],
   sql: `
 CREATE TABLE IF NOT EXISTS ai_engines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   provider TEXT NOT NULL,
   version TEXT NOT NULL,
-  capabilities TEXT[] NOT NULL DEFAULT '{}'::TEXT[]
+  capabilities TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL DEFAULT 'system',
+  updated_by TEXT NOT NULL DEFAULT 'system',
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE INDEX IF NOT EXISTS idx_engines_is_active ON ai_engines(is_active) WHERE deleted_at IS NULL;
   `
 };
 
@@ -55,7 +115,18 @@ export const promptsTable: TableDefinition = {
       type: "UUID",
       nullable: false,
       primaryKey: true,
-      description: "Unique query identifier"
+      description: "Unique query tracking key"
+    },
+    {
+      name: "organization_id",
+      type: "UUID",
+      nullable: false,
+      references: {
+        table: "organizations",
+        column: "id",
+        onDelete: "CASCADE"
+      },
+      description: "Organization (tenant) partition key"
     },
     {
       name: "brand_id",
@@ -66,57 +137,107 @@ export const promptsTable: TableDefinition = {
         column: "id",
         onDelete: "CASCADE"
       },
-      description: "Target brand for the prompt tracking"
+      description: "Monitored brand reference"
     },
     {
       name: "text",
       type: "TEXT",
       nullable: false,
-      description: "Exact query phrase executed (e.g., 'What is the best SaaS for brand analytics?')"
+      description: "Search query text phrase"
     },
     {
       name: "category",
       type: "TEXT",
       nullable: false,
-      description: "Search context / thematic grouping (e.g., 'Features', 'Pricing')"
+      description: "Group category context classification"
     },
     {
       name: "intent",
       type: "TEXT",
       nullable: false,
-      description: "User journey intent: Discovery, Comparison, Recommendation, Purchase, Research, Authority"
+      description: "Customer buying/search journey intent"
     },
     {
       name: "language",
       type: "TEXT",
       nullable: false,
       default: "'en'",
-      description: "Query language locale (e.g., 'en', 'fa')"
+      description: "Locale code language"
     },
     {
       name: "priority",
       type: "TEXT",
       nullable: false,
       default: "'medium'",
-      description: "Tracking update priority: 'low', 'medium', or 'high'"
+      description: "Execution urgency priority rating"
+    },
+    // Audit & Lifecycle columns
+    {
+      name: "created_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was created"
+    },
+    {
+      name: "updated_at",
+      type: "TIMESTAMP",
+      nullable: false,
+      default: "NOW()",
+      description: "Timestamp when the record was last updated"
+    },
+    {
+      name: "created_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that created the record"
+    },
+    {
+      name: "updated_by",
+      type: "TEXT",
+      nullable: false,
+      default: "'system'",
+      description: "User or service that last updated the record"
+    },
+    {
+      name: "deleted_at",
+      type: "TIMESTAMP",
+      nullable: true,
+      description: "Timestamp when soft-deletion occurred"
+    },
+    {
+      name: "version",
+      type: "INTEGER",
+      nullable: false,
+      default: "1",
+      description: "Optimistic locking version counter"
     }
   ],
   indexes: [
+    "CREATE INDEX idx_prompts_organization ON prompts(organization_id);",
     "CREATE INDEX idx_prompts_brand ON prompts(brand_id);",
     "CREATE INDEX idx_prompts_intent ON prompts(intent);"
   ],
   sql: `
 CREATE TABLE IF NOT EXISTS prompts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   category TEXT NOT NULL,
   intent TEXT NOT NULL,
   language TEXT NOT NULL DEFAULT 'en',
   priority TEXT NOT NULL DEFAULT 'medium',
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  created_by TEXT NOT NULL DEFAULT 'system',
+  updated_by TEXT NOT NULL DEFAULT 'system',
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  version INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE INDEX IF NOT EXISTS idx_prompts_organization ON prompts(organization_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_brand ON prompts(brand_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_intent ON prompts(intent);
   `
