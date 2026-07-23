@@ -6,8 +6,17 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/Badge";
 import { Tabs } from "@/components/Tabs";
 import { Button } from "@/components/Button";
+import { AIVisibilityMap } from "@/components/AIVisibilityMap";
+import { EntityExplorerCard } from "@/components/EntityExplorerCard";
+import { AIRecommendationEngine } from "@/components/AIRecommendationEngine";
 import {
-  RefreshCw
+  RefreshCw,
+  Gauge,
+  HelpCircle,
+  TrendingUp,
+  BrainCircuit,
+  MessageCircle,
+  FileCheck2
 } from "lucide-react";
 
 export default function IntelligencePage() {
@@ -107,10 +116,10 @@ export default function IntelligencePage() {
       {/* Title block */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
             {language === "fa" ? "هوشمندی برند و تحلیل معنایی" : "Brand Intelligence Analyzer"}
           </h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
             {language === "fa"
               ? "تحلیل ارزیابی‌های پیشرفته بر روی ساختارهای متنی مدل‌های زبانی."
               : "Analytical evaluations of brand representations and sentiment contexts in model outputs."}
@@ -120,7 +129,7 @@ export default function IntelligencePage() {
         <Button
           variant="outline"
           onClick={handleRefresh}
-          className="flex items-center gap-2 self-start sm:self-auto"
+          className="flex items-center gap-2 self-start sm:self-auto shadow-xs"
           disabled={isRefreshing}
         >
           <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
@@ -131,9 +140,13 @@ export default function IntelligencePage() {
       {/* Main Score panel & Factor card layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Large Score Card */}
-        <Card className="flex flex-col justify-between">
+        <Card className="flex flex-col justify-between border border-[var(--border)] shadow-[var(--shadow-md)] relative overflow-hidden bg-[var(--card)]">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--color-accent-600)]" />
           <CardHeader>
-            <CardTitle>{language === "fa" ? "امتیاز جامع هوشمندی برند" : "Brand Intelligence Score"}</CardTitle>
+            <div className="flex items-center gap-2 text-[var(--color-accent-600)]">
+              <Gauge size={18} />
+              <CardTitle className="text-base font-bold">{language === "fa" ? "امتیاز جامع هوشمندی برند" : "Brand Intelligence Score"}</CardTitle>
+            </div>
             <CardDescription>
               {language === "fa"
                 ? "ارزیابی یکپارچه شده شاخص‌های چهارگانه معنایی"
@@ -154,7 +167,7 @@ export default function IntelligencePage() {
               <Badge variant="success">
                 {language === "fa" ? "رشد +۲.۴٪ این ماه" : "+2.4% MoM Growth"}
               </Badge>
-              <p className="text-xs text-[var(--text-muted)] mt-2">
+              <p className="text-[11px] text-[var(--text-muted)] mt-2">
                 {language === "fa" ? "بالاتر از متوسط رقبای صنعت (۶۴)" : "Above the industry segment average of 64"}
               </p>
             </div>
@@ -162,9 +175,13 @@ export default function IntelligencePage() {
         </Card>
 
         {/* Detailed factors metrics block */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border border-[var(--border)] shadow-[var(--shadow-md)] relative overflow-hidden bg-[var(--card)]">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--color-primary-700)]" />
           <CardHeader>
-            <CardTitle>{language === "fa" ? "شاخص‌های چهارگانه بهینه‌سازی معنایی" : "Semantic Optimization Factors"}</CardTitle>
+            <div className="flex items-center gap-2 text-[var(--color-primary-700)]">
+              <FileCheck2 size={18} />
+              <CardTitle className="text-base font-bold">{language === "fa" ? "شاخص‌های چهارگانه بهینه‌سازی معنایی" : "Semantic Optimization Factors"}</CardTitle>
+            </div>
             <CardDescription>
               {language === "fa"
                 ? "ارزیابی عمیق‌تر بر روی فاکتورهای فنی بازیابی و تولید محتوا."
@@ -191,20 +208,30 @@ export default function IntelligencePage() {
         </Card>
       </div>
 
+      {/* Visually stunning components */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <AIVisibilityMap className="lg:col-span-2" />
+        <EntityExplorerCard />
+      </div>
+
       {/* Dynamic Tabs containing AI Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{language === "fa" ? "تحلیل سیگنال‌ها و اصلاحات متنی" : "AI Sentiment & Contextual Insights"}</CardTitle>
-          <CardDescription>
-            {language === "fa"
-              ? "بینش‌های تولید شده با پایش هوشمند تضادهای اطلاعاتی مدل‌ها."
-              : "Actionable points pinpointing inaccuracies or optimization gaps."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs tabs={insightsTabs} />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border border-[var(--border)] shadow-[var(--shadow-md)] bg-[var(--card)]">
+          <CardHeader>
+            <CardTitle>{language === "fa" ? "تحلیل سیگنال‌ها و اصلاحات متنی" : "AI Sentiment & Contextual Insights"}</CardTitle>
+            <CardDescription>
+              {language === "fa"
+                ? "بینش‌های تولید شده با پایش هوشمند تضادهای اطلاعاتی مدل‌ها."
+                : "Actionable points pinpointing inaccuracies or optimization gaps."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs tabs={insightsTabs} />
+          </CardContent>
+        </Card>
+
+        <AIRecommendationEngine />
+      </div>
     </div>
   );
 }

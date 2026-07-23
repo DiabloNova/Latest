@@ -3,23 +3,21 @@
 import React, { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useTheme } from "@/components/ThemeProvider";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Badge } from "@/components/Badge";
 import { Input } from "@/components/Input";
 import { Dialog } from "@/components/Dialog";
-import { Tabs } from "@/components/Tabs";
+import { KPIMetricCard } from "@/components/KPIMetricCard";
+import { AIVisibilityMap } from "@/components/AIVisibilityMap";
+import { EntityExplorerCard } from "@/components/EntityExplorerCard";
+import { CitationStream } from "@/components/CitationStream";
+import { AIRecommendationEngine } from "@/components/AIRecommendationEngine";
 import {
   TrendingUp,
   MessageSquare,
   FileText,
   AlertCircle,
-  Plus,
-  Search,
-  CheckCircle2,
-  ExternalLink
+  Plus
 } from "lucide-react";
-import Link from "next/link";
 
 export default function DashboardPage() {
   const { session } = useAuth();
@@ -35,8 +33,15 @@ export default function DashboardPage() {
       value: "64.8%",
       change: "+3.4%",
       changeType: "success" as const,
-      description: language === "fa" ? "در تمامی موتورهای هوش مصنوعی اصلی" : "Across ChatGPT, Claude, Gemini, Perplexity",
+      description: language === "fa" ? "در تمامی موتورهای اصلی" : "Across ChatGPT, Claude, Gemini",
       icon: TrendingUp,
+      confidence: "94%",
+      sparklineData: [40, 50, 45, 60, 55, 70, 65, 80],
+      distribution: [
+        { name: "GPT", percentage: 42 },
+        { name: "Claude", percentage: 31 },
+        { name: "Perp", percentage: 27 }
+      ]
     },
     {
       title: language === "fa" ? "شاخص احساسات مخاطب" : "Sentiment Index",
@@ -45,6 +50,13 @@ export default function DashboardPage() {
       changeType: "success" as const,
       description: language === "fa" ? "تحلیل کیفی معنایی در بستر مدل‌ها" : "Qualitative semantic analysis",
       icon: MessageSquare,
+      confidence: "91%",
+      sparklineData: [60, 62, 65, 70, 68, 75, 78, 82],
+      distribution: [
+        { name: "GPT", percentage: 50 },
+        { name: "Claude", percentage: 30 },
+        { name: "Perp", percentage: 20 }
+      ]
     },
     {
       title: language === "fa" ? "کل استنادات ثبت شده" : "Total Citations Indexed",
@@ -53,6 +65,13 @@ export default function DashboardPage() {
       changeType: "success" as const,
       description: language === "fa" ? "لینک‌های ارجاع فعال معتبر" : "Verified outbound citations",
       icon: FileText,
+      confidence: "98%",
+      sparklineData: [30, 45, 55, 70, 85, 100, 115, 120],
+      distribution: [
+        { name: "GPT", percentage: 38 },
+        { name: "Claude", percentage: 42 },
+        { name: "Perp", percentage: 20 }
+      ]
     },
     {
       title: language === "fa" ? "هشدارهای امنیتی برند" : "Critical Brand Alerts",
@@ -61,36 +80,13 @@ export default function DashboardPage() {
       changeType: "error" as const,
       description: language === "fa" ? "پایش پاسخ‌های مغایر با حقیقت" : "Potential hallucination detected",
       icon: AlertCircle,
-    },
-  ];
-
-  const recentCitations = [
-    {
-      id: "cit-1",
-      brand: "Tehran Ecommerce Corp",
-      engine: "Perplexity",
-      query: "Top logistics providers in Iran",
-      status: "Verified Citation",
-      url: "https://tehranlogistics.ir/services",
-      time: "10m ago",
-    },
-    {
-      id: "cit-2",
-      brand: "Tehran Ecommerce Corp",
-      engine: "ChatGPT",
-      query: "Best online retail solutions in Tehran",
-      status: "Semantic Mention",
-      url: "https://tehranecom.ir/about",
-      time: "1h ago",
-    },
-    {
-      id: "cit-3",
-      brand: "Tehran Ecommerce Corp",
-      engine: "Claude",
-      query: "Enterprise SaaS trends in GCC regional market",
-      status: "Indirect Association",
-      url: "https://tehranecom.ir/blog/saas-gcc",
-      time: "4h ago",
+      confidence: "99%",
+      sparklineData: [100, 90, 80, 60, 40, 20, 10, 5],
+      distribution: [
+        { name: "GPT", percentage: 50 },
+        { name: "Claude", percentage: 50 },
+        { name: "Perp", percentage: 0 }
+      ]
     },
   ];
 
@@ -103,175 +99,50 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
+      {/* Welcome Command Center Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
             {language === "fa"
-              ? `خوش آمدید، ${session.user?.name || "کاربر گرامی"}`
-              : `Welcome back, ${session.user?.name || "Guest"}`}
+              ? `مرکز فرماندهی هوشمندی برند: ${session.user?.name || "کاربر گرامی"}`
+              : `AI Brand Intelligence Command Center`}
           </h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl leading-relaxed">
             {language === "fa"
-              ? "بررسی و مدیریت لحظه‌ای پایداری حضور برند شما در نتایج هوش مصنوعی و مدل‌های زبانی."
-              : "Overview of your brand's presence metrics across leading generative answer platforms."}
+              ? "مرکز پایش، ارزیابی پایداری مراجع، رفع تضادهای اطلاعاتی و بهینه‌سازی فعال موجودیت‌های وب شما در هسته مدل‌های زبانی."
+              : "Active monitoring workspace. Securing brand entity representations, tracking prompt query intents, and managing outward links across top AI systems."}
           </p>
         </div>
 
-        <Button onClick={() => setIsAddBrandOpen(true)} className="flex items-center gap-2 self-start sm:self-auto">
+        <Button onClick={() => setIsAddBrandOpen(true)} className="flex items-center gap-2 self-start sm:self-auto shadow-sm">
           <Plus size={16} />
-          <span>{language === "fa" ? "افزودن برند جدید" : "Register Brand"}</span>
+          <span>{language === "fa" ? "ثبت موجودیت برند" : "Register Brand Entity"}</span>
         </Button>
       </div>
 
-      {/* Metrics Banner */}
+      {/* Upgraded KPI Cards Banner */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric, idx) => {
-          const Icon = metric.icon;
-          return (
-            <Card key={idx} hoverable>
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
-                    {metric.title}
-                  </span>
-                  <span className="text-2xl font-black text-[var(--text-primary)] block">
-                    {metric.value}
-                  </span>
-                </div>
-                <div className="p-2 bg-[var(--background)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--color-accent-600)]">
-                  <Icon size={18} />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center justify-between text-xs">
-                <Badge variant={metric.changeType}>
-                  {metric.change}
-                </Badge>
-                <span className="text-[var(--text-muted)] truncate max-w-[150px]">
-                  {metric.description}
-                </span>
-              </div>
-            </Card>
-          );
-        })}
+        {metrics.map((metric, idx) => (
+          <KPIMetricCard key={idx} {...metric} />
+        ))}
       </div>
 
-      {/* Analytical Layout Section */}
+      {/* Visually stunning graphics section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Core AI Search Monitoring Widget */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{language === "fa" ? "پایش زنده استنادات و مراجع" : "Live Citation Stream"}</CardTitle>
-                <CardDescription>
-                  {language === "fa"
-                    ? "نمای لحظه‌ای از نحوه ارجاع مدل‌ها به دارایی‌های وب شما."
-                    : "Real-time logs of queries yielding direct links to your web domains."}
-                </CardDescription>
-              </div>
-              <Link href="/dashboard/intelligence">
-                <Button variant="outline" size="sm" className="text-xs">
-                  {language === "fa" ? "مشاهده همه" : "View All"}
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse rtl:text-right">
-                <thead>
-                  <tr className="border-b border-[var(--border)] text-xs text-[var(--text-muted)] font-semibold uppercase bg-[var(--background)]">
-                    <th className="py-3 px-4">{language === "fa" ? "مدل" : "Engine"}</th>
-                    <th className="py-3 px-4">{language === "fa" ? "کوئری فرضی" : "Prompt Query"}</th>
-                    <th className="py-3 px-4">{language === "fa" ? "نوع ارجاع" : "Type"}</th>
-                    <th className="py-3 px-4">{language === "fa" ? "زمان" : "Occurred"}</th>
-                    <th className="py-3 px-4"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)] text-sm">
-                  {recentCitations.map((cit) => (
-                    <tr key={cit.id} className="hover:bg-[var(--background)] transition-colors">
-                      <td className="py-3 px-4 font-bold text-[var(--text-primary)]">
-                        {cit.engine}
-                      </td>
-                      <td className="py-3 px-4 text-[var(--text-secondary)] italic max-w-[200px] truncate">
-                        &ldquo;{cit.query}&rdquo;
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={cit.status === "Verified Citation" ? "success" : "info"}>
-                          {cit.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-[var(--text-muted)]">
-                        {cit.time}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <a
-                          href={cit.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex p-1 text-[var(--text-muted)] hover:text-[var(--color-accent-600)] transition-colors"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Visibility Flow Map */}
+        <AIVisibilityMap className="lg:col-span-2" />
 
-        {/* Action Center Widget */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{language === "fa" ? "اقدامات فوری بهینه‌سازی" : "Optimization Center"}</CardTitle>
-            <CardDescription>
-              {language === "fa"
-                ? "وظایف پیشنهادی هوش مصنوعی برای ارتقای رتبه و سهم صدای برند."
-                : "AI-generated steps to secure brand citation anchors."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <CheckCircle2 className="text-[var(--color-success)] mt-0.5 flex-shrink-0" size={16} />
-              <div>
-                <p className="text-xs font-bold text-[var(--text-primary)]">
-                  {language === "fa" ? "افزودن اسکیما به صفحات فرود" : "Inject Schema on Product Pages"}
-                </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                  {language === "fa" ? "فرمت JSON-LD به مدل‌ها در درک موجودیت‌ها کمک می‌کند." : "Provides structured context for ChatGPT models."}
-                </p>
-              </div>
-            </div>
+        {/* Entity Knowledge Explorer card */}
+        <EntityExplorerCard />
+      </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <AlertCircle className="text-[var(--color-warning)] mt-0.5 flex-shrink-0" size={16} />
-              <div>
-                <p className="text-xs font-bold text-[var(--text-primary)]">
-                  {language === "fa" ? "رفع خطای توکنایزر زبان فارسی" : "Address Hallucinated Claims"}
-                </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                  {language === "fa" ? "درخواست اسکن هدفمند جدید برای رفع تناقض‌های متنی." : "Create target benchmarks for incorrect statements."}
-                </p>
-              </div>
-            </div>
+      {/* Citation Streams and Prescriptive AI recommendations */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Improved Citation Stream */}
+        <CitationStream className="lg:col-span-2" />
 
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <CheckCircle2 className="text-[var(--color-info)] mt-0.5 flex-shrink-0" size={16} />
-              <div>
-                <p className="text-xs font-bold text-[var(--text-primary)]">
-                  {language === "fa" ? "به‌روزرسانی ساختار llms.txt" : "Publish structured llms.txt"}
-                </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                  {language === "fa" ? "بهینه‌سازی دسترسی ربات‌های جمع‌آوری داده هوش مصنوعی." : "Allows seamless crawling by Perplexity crawler engines."}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Improved Optimization Center */}
+        <AIRecommendationEngine />
       </div>
 
       {/* REGISTER BRAND DIALOG */}
