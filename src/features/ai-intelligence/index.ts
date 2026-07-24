@@ -15,6 +15,7 @@ export * from "./domain/events/event-bus";
 
 // Domain Services
 export { AeoScoreEngine } from "./domain/services/aeo-score-engine";
+export { VisibilityScoreEngine, type ScoreEngineInput } from "./domain/services/visibility-score-engine";
 
 // Domain Entities & Aggregates
 export { BrandEntity } from "./domain/entities/brand-entity";
@@ -36,6 +37,7 @@ export * from "./application/mappers";
 export * from "./application/commands";
 export * from "./application/queries";
 export { ApplicationCommandHandler, ApplicationQueryHandler } from "./application/handlers";
+export * from "./application/use-cases";
 
 // Security & Compliance
 export * from "./security";
@@ -51,3 +53,24 @@ export * from "./knowledge-graph";
 
 // Observability Layer
 export * from "./observability";
+
+// Infrastructure AI Engines
+export * from "./infrastructure/ai-engines";
+
+// Prompt Engine
+export * from "./prompt-engine";
+
+// Web Collectors
+export * from "./collectors";
+
+// Observation Processors
+export * from "./processors";
+
+// Citation Intelligence
+export * from "./citation-engine";
+
+// Background Workers
+export * from "./workers";
+
+// Infrastructure Storage
+export * from "./infrastructure/storage";

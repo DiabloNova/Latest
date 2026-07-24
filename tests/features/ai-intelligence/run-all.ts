@@ -7,6 +7,7 @@ import { testDomain } from "./domain.test";
 import { testSecurity } from "./security.test";
 import { testApplication } from "./application.test";
 import { testEvents } from "./events.test";
+import "./runtime/index.test"; // Importing this runs the runtime tests dynamically!
 
 async function main() {
   console.log("====================================================");
@@ -24,7 +25,7 @@ async function main() {
       console.log("\n====================================================");
       console.log("🎉 ALL ENTERPRISE TEST SUITES PASSED SECURELY!");
       console.log("====================================================");
-    }, 100);
+    }, 200);
 
   } catch (error) {
     console.error("\n❌ TEST SUITE RUNNER FAILURE:", error);
