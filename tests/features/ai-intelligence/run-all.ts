@@ -7,7 +7,8 @@ import { testDomain } from "./domain.test";
 import { testSecurity } from "./security.test";
 import { testApplication } from "./application.test";
 import { testEvents } from "./events.test";
-import "./runtime/index.test"; // Importing this runs the runtime tests dynamically!
+import "./runtime/index.test"; // Runs the runtime tests dynamically!
+import "./platform/index.test"; // Runs the platform tests dynamically!
 
 async function main() {
   console.log("====================================================");

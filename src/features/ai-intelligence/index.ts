@@ -74,3 +74,21 @@ export * from "./workers";
 
 // Infrastructure Storage
 export * from "./infrastructure/storage";
+
+// Campaigns Sub-Module
+export * from "./campaigns";
+
+// Workspace Sub-Module
+export * from "./intelligence-workspace";
+
+// Analytics Aggregates
+export * from "./analytics";
+
+// Recommendation Engine
+export * from "./recommendations";
+
+// Notifications
+export * from "./notifications";
+
+// Billing / Usage Metering
+export * from "./billing";

@@ -103,3 +103,14 @@ export interface RecommendationDTO {
   description: string;
   status: string;
 }
+
+export interface CampaignDTO {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  name: string;
+  status: string;
+  engines: string[];
+  promptIds: string[];
+  frequency: string;
+}

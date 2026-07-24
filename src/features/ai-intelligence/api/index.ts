@@ -4,6 +4,8 @@
  * Establishes structured request schemas, response envelopes, pagination, and error formats.
  */
 
+import { BrandDTO, CampaignDTO, CitationDTO, RecommendationDTO } from "../application/dto";
+
 export interface APIRequestPagination {
   page?: number;
   pageSize?: number;
@@ -45,7 +47,7 @@ export interface APIErrorFieldDetail {
   issue: string;
 }
 
-// Concrete Request Schemas
+// 1. Brand Contracts
 export interface CreateBrandRequest {
   name: string;
   description?: string;
@@ -54,28 +56,55 @@ export interface CreateBrandRequest {
   country?: string;
 }
 
-export interface DiscoverEntityRequest {
+export interface UpdateBrandRequest {
+  name?: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  country?: string;
+}
+
+export interface BrandIntelligenceProfileResponse {
+  brand: BrandDTO;
+  overallScore: number;
+  grade: "A" | "B" | "C" | "D" | "F";
+  engineCoverage: number; // e.g. 0.75 for 3/4 engines
+}
+
+// 2. Campaign Contracts
+export interface CreateCampaignRequest {
   brandId: string;
   name: string;
-  type: string;
-  wikidataId?: string;
-  wikipediaUrl?: string;
-  confidenceScore?: number;
+  engines: string[];
+  promptIds: string[];
+  frequency: "daily" | "weekly" | "monthly";
+  targetVisibilityScore?: number;
 }
 
-export interface CaptureObservationRequest {
-  promptId: string;
-  engineId: string;
-  responseText: string;
-  rawVisibilityScore: number;
-  sentimentScore: number;
-  confidenceScore?: number;
+export interface CampaignHistoryResponse {
+  campaign: CampaignDTO;
+  executions: {
+    executionId: string;
+    startedAt: string;
+    status: string;
+    costUsd: number;
+    observationsProcessed: number;
+  }[];
 }
 
-export interface GenerateRecommendationRequest {
+// 3. Reports Contracts
+export interface VisibilityReportResponse {
   brandId: string;
-  category: string;
-  priority: "low" | "medium" | "high";
-  impactScore: number;
-  description: string;
+  timeline: { date: string; score: number }[];
+  growthPercentage: number;
+}
+
+export interface CitationReportResponse {
+  citations: CitationDTO[];
+  domainShare: { domain: string; count: number; averageAuthority: number }[];
+}
+
+export interface RecommendationReportResponse {
+  recommendations: RecommendationDTO[];
+  predictedTotalLift: number;
 }
