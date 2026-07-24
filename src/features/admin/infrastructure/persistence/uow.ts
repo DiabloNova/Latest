@@ -7,10 +7,27 @@ import { IUnitOfWork } from "../../../../core/database/unit-of-work";
 import { DomainEvent } from "../../../../core/events";
 import { coreEventBus } from "../../../../core/events";
 
+export interface IPostgresClient {
+  begin(): Promise<void>;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+  connectClient(): Promise<unknown>;
+}
+
 export class UnitOfWork implements IUnitOfWork {
   private isTransactionActive = false;
   private pendingOperations: (() => Promise<void>)[] = [];
   private deferredEvents: DomainEvent<unknown>[] = [];
+  private pg: IPostgresClient;
+  private activeClient: unknown = null;
+
+  constructor(pg: IPostgresClient) {
+    this.pg = pg;
+  }
+
+  public getActiveTransactionClient(): unknown {
+    return this.activeClient;
+  }
 
   public async startTransaction(): Promise<void> {
     if (this.isTransactionActive) {
@@ -19,6 +36,10 @@ export class UnitOfWork implements IUnitOfWork {
     this.isTransactionActive = true;
     this.pendingOperations = [];
     this.deferredEvents = [];
+
+    // Lease dedicated transacted client thread-safely
+    this.activeClient = await this.pg.connectClient();
+    await this.pg.begin();
   }
 
   public registerOperation(op: () => Promise<void>): void {
@@ -54,6 +75,9 @@ export class UnitOfWork implements IUnitOfWork {
         await op();
       }
 
+      // Commit actual Postgres transaction
+      await this.pg.commit();
+
       // Publish all deferred events now that transaction committed successfully
       for (const event of this.deferredEvents) {
         await coreEventBus.publish(event);
@@ -66,13 +90,26 @@ export class UnitOfWork implements IUnitOfWork {
       this.isTransactionActive = false;
       this.pendingOperations = [];
       this.deferredEvents = [];
+      const clientObj = this.activeClient as Record<string, unknown> | null;
+      if (clientObj && typeof clientObj.release === "function") {
+        (clientObj.release as () => void)();
+      }
+      this.activeClient = null;
     }
   }
 
   public async rollback(): Promise<void> {
+    if (this.isTransactionActive) {
+      await this.pg.rollback();
+    }
     this.isTransactionActive = false;
     this.pendingOperations = [];
     this.deferredEvents = [];
+    const clientObj = this.activeClient as Record<string, unknown> | null;
+    if (clientObj && typeof clientObj.release === "function") {
+      (clientObj.release as () => void)();
+    }
+    this.activeClient = null;
   }
 
   public async runInTransaction<T>(work: (uow: IUnitOfWork) => Promise<T>): Promise<T> {

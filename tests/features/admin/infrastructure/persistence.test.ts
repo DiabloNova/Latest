@@ -2,20 +2,20 @@
  * Phase 7C.5 — Enterprise Admin Infrastructure & Persistence Integration Tests
  */
 
-import { AdminMockDatabase } from "../../../../src/features/admin/infrastructure/mock-db";
 import { UnitOfWork } from "../../../../src/features/admin/infrastructure/persistence/uow";
-import { PostgresTenantRepository, OptimisticLockingError } from "../../../../src/features/admin/infrastructure/persistence/repositories";
+import { PostgresTenantRepository, PostgresClient, OptimisticLockingError } from "../../../../src/features/admin/infrastructure/persistence/postgres";
 import { Tenant } from "../../../../src/features/admin/domain/types";
 import { coreEventBus } from "../../../../src/core/events";
 
 export async function testInfrastructure() {
   console.log("▶ Running Administrative Infrastructure Integration Tests...");
 
-  const db = AdminMockDatabase.getInstance();
-  db.clear(); // Reset to seed state
+  const pg = PostgresClient.getInstance();
+  const uow = new UnitOfWork(pg);
+  const tenantRepo = new PostgresTenantRepository(pg, uow);
 
-  const uow = new UnitOfWork();
-  const tenantRepo = new PostgresTenantRepository(db, uow);
+  // Reset the static store
+  PostgresTenantRepository.seed([]);
 
   // 1. Test Base Persistence (Save and Find)
   const tenant: Tenant = {
@@ -60,11 +60,10 @@ export async function testInfrastructure() {
     }
   };
 
-  // Save entity (outside transaction to write immediately)
-  const repoImmediate = new PostgresTenantRepository(db);
-  await repoImmediate.save(tenant);
+  // Save entity
+  await tenantRepo.save(tenant);
 
-  const found = await repoImmediate.findById(tenant.id);
+  const found = await tenantRepo.findById(tenant.id);
   if (!found || found.name !== "Conner Defense") {
     throw new Error(`Integration Test Failed: Repository save or find did not persist entity correctly.`);
   }
@@ -75,12 +74,12 @@ export async function testInfrastructure() {
 
   // Modify copy 1 and save
   copy1.name = "Conner Security Group";
-  await repoImmediate.save(copy1); // Version increments to 2
+  await tenantRepo.save(copy1); // Version increments to 2
 
   // Modify copy 2 (with outdated version 1) and attempt to save
   copy2.name = "Conner Advanced Robotics";
   try {
-    await repoImmediate.save(copy2);
+    await tenantRepo.save(copy2);
     throw new Error(`Integration Test Failed: Outdated version should have thrown OptimisticLockingError.`);
   } catch (error: unknown) {
     if (!(error instanceof OptimisticLockingError)) {
@@ -90,20 +89,20 @@ export async function testInfrastructure() {
   }
 
   // 3. Test Soft Delete Strategy
-  await repoImmediate.delete(tenant.id);
-  const fetchedDeleted = await repoImmediate.findById(tenant.id);
+  await tenantRepo.delete(tenant.id);
+  const fetchedDeleted = await tenantRepo.findById(tenant.id);
   if (fetchedDeleted !== null) {
     throw new Error(`Integration Test Failed: Soft deleted tenant should not be fetched by default findById.`);
   }
 
   // Verify it exists in db maps but with deletedAt set
-  const rawDbRecord = db.tenants.get(tenant.id);
+  const rawDbRecord = PostgresTenantRepository.getRawStore().get(tenant.id);
   if (!rawDbRecord || !rawDbRecord.audit.deletedAt) {
     throw new Error(`Integration Test Failed: Soft-delete did not set audit.deletedAt timestamp.`);
   }
 
   // 4. Test Transaction Rollback Scenario (Using Unit of Work)
-  db.clear(); // Reset seed values
+  PostgresTenantRepository.seed([]);
   let eventFired = false;
 
   const testHandler = {
@@ -153,7 +152,7 @@ export async function testInfrastructure() {
   }
 
   // Verify database state is untouched (rolled back)
-  const txTenantCheck = db.tenants.get("tx-test-tenant");
+  const txTenantCheck = PostgresTenantRepository.getRawStore().get("tx-test-tenant");
   if (txTenantCheck !== undefined) {
     throw new Error(`Integration Test Failed: Transacted changes were not rolled back upon exception.`);
   }
@@ -191,7 +190,7 @@ export async function testInfrastructure() {
   });
 
   // Verify database contains committed tenant
-  const txCommitCheck = db.tenants.get("tx-commit-tenant");
+  const txCommitCheck = PostgresTenantRepository.getRawStore().get("tx-commit-tenant");
   if (!txCommitCheck || txCommitCheck.name !== "TX Committed Corp") {
     throw new Error(`Integration Test Failed: Tenant was not committed to database successfully.`);
   }

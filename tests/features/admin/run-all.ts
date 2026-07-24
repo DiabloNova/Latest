@@ -7,6 +7,7 @@ import { testDomain } from "./domain.test";
 import { testCQRS } from "./cqrs.test";
 import { testSecurity } from "./security.test";
 import { testInfrastructure } from "./infrastructure/persistence.test";
+import { testPostgresIntegration } from "./infrastructure/postgres-integration.test";
 
 async function main() {
   console.log("====================================================");
@@ -18,6 +19,7 @@ async function main() {
     await testCQRS();
     testSecurity();
     await testInfrastructure();
+    await testPostgresIntegration();
 
     // Allow asynchronous event bus execution to complete before final status log
     setTimeout(() => {

@@ -3,11 +3,17 @@
  * Centralized registry for repositories, event publishers, security guards, and handlers.
  */
 
-import { PostgresTenantRepository, PostgresAdminUserRepository, PostgresFeatureFlagRepository, PostgresAuditRecordRepository, PostgresAIProviderConfigurationRepository } from "../../features/admin/infrastructure/persistence/repositories";
+import {
+  PostgresTenantRepository,
+  PostgresAdminUserRepository,
+  PostgresFeatureFlagRepository,
+  PostgresAuditRecordRepository,
+  PostgresAIProviderConfigurationRepository,
+  PostgresClient
+} from "../../features/admin/infrastructure/persistence/postgres";
 import { UnitOfWork } from "../../features/admin/infrastructure/persistence/uow";
 import { coreEventBus, EventBus } from "../events";
 import { AdminAPIClient } from "../../features/admin/api/v1/admin";
-import { AdminMockDatabase } from "../../features/admin/infrastructure/mock-db";
 
 export class DependencyContainer {
   private static instance: DependencyContainer;
@@ -51,20 +57,20 @@ export class DependencyContainer {
   }
 
   private registerDefaults(): void {
-    const db = AdminMockDatabase.getInstance();
-    const uow = new UnitOfWork();
+    const pgClient = PostgresClient.getInstance();
+    const uow = new UnitOfWork(pgClient);
 
     // 1. Register Core Infrastructure
-    this.register<AdminMockDatabase>("Database", db);
+    this.register<PostgresClient>("Database", pgClient);
     this.register<UnitOfWork>("UnitOfWork", uow);
     this.register<EventBus>("EventPublisher", coreEventBus);
 
-    // 2. Register Repositories
-    this.register<PostgresTenantRepository>("TenantRepository", new PostgresTenantRepository(db, uow));
-    this.register<PostgresAdminUserRepository>("AdminUserRepository", new PostgresAdminUserRepository(db, uow));
-    this.register<PostgresFeatureFlagRepository>("FeatureFlagRepository", new PostgresFeatureFlagRepository(db, uow));
-    this.register<PostgresAuditRecordRepository>("AuditRecordRepository", new PostgresAuditRecordRepository(db, uow));
-    this.register<PostgresAIProviderConfigurationRepository>("AIProviderConfigurationRepository", new PostgresAIProviderConfigurationRepository(db, uow));
+    // 2. Register Repositories (Registered as real PostgreSQL implementations!)
+    this.register<PostgresTenantRepository>("TenantRepository", new PostgresTenantRepository(pgClient));
+    this.register<PostgresAdminUserRepository>("AdminUserRepository", new PostgresAdminUserRepository(pgClient));
+    this.register<PostgresFeatureFlagRepository>("FeatureFlagRepository", new PostgresFeatureFlagRepository(pgClient));
+    this.register<PostgresAuditRecordRepository>("AuditRecordRepository", new PostgresAuditRecordRepository(pgClient));
+    this.register<PostgresAIProviderConfigurationRepository>("AIProviderConfigurationRepository", new PostgresAIProviderConfigurationRepository(pgClient));
 
     // 3. Register Standard Client Gateways
     this.register<AdminAPIClient>("AdminAPIClient", new AdminAPIClient());
