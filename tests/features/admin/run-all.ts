@@ -6,6 +6,7 @@
 import { testDomain } from "./domain.test";
 import { testCQRS } from "./cqrs.test";
 import { testSecurity } from "./security.test";
+import { testInfrastructure } from "./infrastructure/persistence.test";
 
 async function main() {
   console.log("====================================================");
@@ -16,6 +17,7 @@ async function main() {
     testDomain();
     await testCQRS();
     testSecurity();
+    await testInfrastructure();
 
     // Allow asynchronous event bus execution to complete before final status log
     setTimeout(() => {

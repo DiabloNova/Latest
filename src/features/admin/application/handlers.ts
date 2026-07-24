@@ -28,23 +28,44 @@ import { Tenant, AuditRecord } from "../domain/types";
 import { TenantAggregate, AdminUserAggregate, FeatureFlagAggregate } from "../domain/entities";
 import { AdminDomainEventFactory } from "../domain/events";
 import { AdminMockDatabase } from "../infrastructure/mock-db";
-import { eventBus } from "../../ai-intelligence/domain/events/event-bus";
+import { UnitOfWork } from "../infrastructure/persistence/uow";
+import {
+  PostgresTenantRepository,
+  PostgresAdminUserRepository,
+  PostgresFeatureFlagRepository,
+  PostgresAuditRecordRepository,
+  PostgresAIProviderConfigurationRepository
+} from "../infrastructure/persistence/repositories";
 import { DomainEvent } from "../../ai-intelligence/domain/events";
 
 export class ApplicationAdminCommandHandler {
   private db: AdminMockDatabase;
+  private uow: UnitOfWork;
 
-  constructor(db?: AdminMockDatabase) {
+  private tenantRepo: PostgresTenantRepository;
+  private userRepo: PostgresAdminUserRepository;
+  private flagRepo: PostgresFeatureFlagRepository;
+  private auditRepo: PostgresAuditRecordRepository;
+  private providerRepo: PostgresAIProviderConfigurationRepository;
+
+  constructor(db?: AdminMockDatabase, uow?: UnitOfWork) {
     this.db = db || AdminMockDatabase.getInstance();
+    this.uow = uow || new UnitOfWork();
+
+    this.tenantRepo = new PostgresTenantRepository(this.db, this.uow);
+    this.userRepo = new PostgresAdminUserRepository(this.db, this.uow);
+    this.flagRepo = new PostgresFeatureFlagRepository(this.db, this.uow);
+    this.auditRepo = new PostgresAuditRecordRepository(this.db, this.uow);
+    this.providerRepo = new PostgresAIProviderConfigurationRepository(this.db, this.uow);
   }
 
-  private appendAudit(record: Omit<AuditRecord, "id" | "timestamp">): AuditRecord {
+  private async appendAudit(record: Omit<AuditRecord, "id" | "timestamp">): Promise<AuditRecord> {
     const auditRecord: AuditRecord = {
       id: `audit-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
       ...record
     };
-    this.db.auditRecords.push(auditRecord);
+    await this.auditRepo.save(auditRecord);
     return auditRecord;
   }
 
@@ -52,7 +73,7 @@ export class ApplicationAdminCommandHandler {
    * Handle: CreateTenantCommand
    */
   public async handleCreateTenant(command: CreateTenantCommand): Promise<TenantDTO> {
-    try {
+    return this.uow.runInTransaction(async () => {
       const tenant: Tenant = {
         id: `tenant-${command.slug}-uuid`,
         name: command.name,
@@ -95,7 +116,7 @@ export class ApplicationAdminCommandHandler {
         }
       };
 
-      this.db.tenants.set(tenant.id, tenant);
+      await this.tenantRepo.save(tenant);
 
       // Publish TenantCreatedEvent
       const event = AdminDomainEventFactory.create(
@@ -111,10 +132,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -128,38 +149,24 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.tenantToDTO(tenant);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "TENANT_CREATE",
-        resourceType: "tenant",
-        resourceId: "unknown",
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: SuspendTenantCommand
    */
   public async handleSuspendTenant(command: SuspendTenantCommand): Promise<TenantDTO> {
-    const tenant = this.db.tenants.get(command.tenantId);
-    if (!tenant) {
-      throw new Error(`Tenant with ID ${command.tenantId} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const tenant = await this.tenantRepo.findById(command.tenantId);
+      if (!tenant) {
+        throw new Error(`Tenant with ID ${command.tenantId} not found.`);
+      }
 
-    try {
       const aggregate = new TenantAggregate(tenant);
       const payloadBefore = JSON.stringify(tenant);
 
       aggregate.suspend();
+      await this.tenantRepo.save(tenant);
 
       // Publish TenantSuspendedEvent
       const event = AdminDomainEventFactory.create(
@@ -173,10 +180,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -191,40 +198,26 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.tenantToDTO(tenant);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "TENANT_SUSPEND",
-        resourceType: "tenant",
-        resourceId: command.tenantId,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: ActivateTenantCommand
    */
   public async handleActivateTenant(command: ActivateTenantCommand): Promise<TenantDTO> {
-    const tenant = this.db.tenants.get(command.tenantId);
-    if (!tenant) {
-      throw new Error(`Tenant with ID ${command.tenantId} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const tenant = await this.tenantRepo.findById(command.tenantId);
+      if (!tenant) {
+        throw new Error(`Tenant with ID ${command.tenantId} not found.`);
+      }
 
-    try {
       const aggregate = new TenantAggregate(tenant);
       const payloadBefore = JSON.stringify(tenant);
 
       aggregate.activate();
+      await this.tenantRepo.save(tenant);
 
-      // Publish TenantCreatedEvent or Similar Status Changed Event
+      // Publish TenantActivatedEvent
       const event = AdminDomainEventFactory.create(
         "admin.tenant.activated",
         tenant.id,
@@ -238,10 +231,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -256,41 +249,27 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.tenantToDTO(tenant);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "TENANT_ACTIVATE",
-        resourceType: "tenant",
-        resourceId: command.tenantId,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: UpdateTenantQuotaCommand
    */
   public async handleUpdateTenantQuota(command: UpdateTenantQuotaCommand): Promise<TenantDTO> {
-    const tenant = this.db.tenants.get(command.tenantId);
-    if (!tenant) {
-      throw new Error(`Tenant with ID ${command.tenantId} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const tenant = await this.tenantRepo.findById(command.tenantId);
+      if (!tenant) {
+        throw new Error(`Tenant with ID ${command.tenantId} not found.`);
+      }
 
-    try {
       const aggregate = new TenantAggregate(tenant);
       const payloadBefore = JSON.stringify(tenant);
 
       aggregate.updateQuota(command.quota);
+      await this.tenantRepo.save(tenant);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -305,39 +284,25 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.tenantToDTO(tenant);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "TENANT_QUOTA_UPDATE",
-        resourceType: "tenant",
-        resourceId: command.tenantId,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: ChangeUserRoleCommand
    */
   public async handleChangeUserRole(command: ChangeUserRoleCommand): Promise<AdminUserDTO> {
-    const user = this.db.adminUsers.get(command.userId);
-    if (!user) {
-      throw new Error(`Admin user with ID ${command.userId} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const user = await this.userRepo.findById(command.userId);
+      if (!user) {
+        throw new Error(`Admin user with ID ${command.userId} not found.`);
+      }
 
-    try {
       const aggregate = new AdminUserAggregate(user);
       const payloadBefore = JSON.stringify(user);
       const oldRole = user.role;
 
       aggregate.changeRole(command.newRole, command.permissions);
+      await this.userRepo.save(user);
 
       // Publish UserRoleChangedEvent
       const event = AdminDomainEventFactory.create(
@@ -353,10 +318,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -371,34 +336,19 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.adminUserToDTO(user);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "USER_ROLE_CHANGE",
-        resourceType: "user",
-        resourceId: command.userId,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: UpdateAIProviderConfigCommand
    */
   public async handleUpdateAIProviderConfig(command: UpdateAIProviderConfigCommand): Promise<AIProviderDTO> {
-    const provider = this.db.aiProviders.get(command.providerId);
-    if (!provider) {
-      throw new Error(`AI Provider configuration with ID ${command.providerId} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const provider = await this.providerRepo.findById(command.providerId);
+      if (!provider) {
+        throw new Error(`AI Provider configuration with ID ${command.providerId} not found.`);
+      }
 
-    try {
       const payloadBefore = JSON.stringify(provider);
 
       if (command.endpointUrl !== undefined) provider.endpointUrl = command.endpointUrl;
@@ -408,7 +358,7 @@ export class ApplicationAdminCommandHandler {
 
       provider.audit.updatedAt = new Date().toISOString();
       provider.audit.updatedBy = command.actorId;
-      provider.audit.version += 1;
+      await this.providerRepo.save(provider);
 
       // Publish AIProviderUpdatedEvent
       const event = AdminDomainEventFactory.create(
@@ -423,10 +373,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -441,34 +391,19 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.aiProviderToDTO(provider);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "AI_PROVIDER_UPDATE",
-        resourceType: "ai_provider",
-        resourceId: command.providerId,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: EnableFeatureFlagCommand
    */
   public async handleEnableFeatureFlag(command: EnableFeatureFlagCommand): Promise<FeatureFlagDTO> {
-    const flag = this.db.featureFlags.get(command.flagKey);
-    if (!flag) {
-      throw new Error(`Feature flag with key ${command.flagKey} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const flag = await this.flagRepo.findByKey(command.flagKey);
+      if (!flag) {
+        throw new Error(`Feature flag with key ${command.flagKey} not found.`);
+      }
 
-    try {
       const aggregate = new FeatureFlagAggregate(flag);
       const payloadBefore = JSON.stringify(flag);
 
@@ -477,6 +412,8 @@ export class ApplicationAdminCommandHandler {
       } else {
         aggregate.toggleGlobally(true);
       }
+
+      await this.flagRepo.save(flag);
 
       // Publish FeatureFlagChangedEvent
       const event = AdminDomainEventFactory.create(
@@ -492,10 +429,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -510,34 +447,19 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.featureFlagToDTO(flag);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "FEATURE_FLAG_ENABLE",
-        resourceType: "feature_flag",
-        resourceId: flag ? flag.id : command.flagKey,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 
   /**
    * Handle: DisableFeatureFlagCommand
    */
   public async handleDisableFeatureFlag(command: DisableFeatureFlagCommand): Promise<FeatureFlagDTO> {
-    const flag = this.db.featureFlags.get(command.flagKey);
-    if (!flag) {
-      throw new Error(`Feature flag with key ${command.flagKey} not found.`);
-    }
+    return this.uow.runInTransaction(async () => {
+      const flag = await this.flagRepo.findByKey(command.flagKey);
+      if (!flag) {
+        throw new Error(`Feature flag with key ${command.flagKey} not found.`);
+      }
 
-    try {
       const aggregate = new FeatureFlagAggregate(flag);
       const payloadBefore = JSON.stringify(flag);
 
@@ -546,6 +468,8 @@ export class ApplicationAdminCommandHandler {
       } else {
         aggregate.toggleGlobally(false);
       }
+
+      await this.flagRepo.save(flag);
 
       // Publish FeatureFlagChangedEvent
       const event = AdminDomainEventFactory.create(
@@ -561,10 +485,10 @@ export class ApplicationAdminCommandHandler {
         },
         command.actorId
       );
-      await eventBus.publish(event as unknown as DomainEvent);
+      this.uow.registerDeferredEvent(event as unknown as DomainEvent);
 
       // Immutable Audit Log
-      this.appendAudit({
+      await this.appendAudit({
         actorId: command.actorId,
         actorEmail: command.actorEmail,
         actorRole: command.actorRole,
@@ -579,37 +503,29 @@ export class ApplicationAdminCommandHandler {
       });
 
       return AdminDTOMappers.featureFlagToDTO(flag);
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.appendAudit({
-        actorId: command.actorId,
-        actorEmail: command.actorEmail,
-        actorRole: command.actorRole,
-        action: "FEATURE_FLAG_DISABLE",
-        resourceType: "feature_flag",
-        resourceId: flag ? flag.id : command.flagKey,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-        status: "error",
-        errorDetails: errMsg
-      });
-      throw error;
-    }
+    });
   }
 }
 
 export class ApplicationAdminQueryHandler {
   private db: AdminMockDatabase;
+  private tenantRepo: PostgresTenantRepository;
+  private auditRepo: PostgresAuditRecordRepository;
+  private providerRepo: PostgresAIProviderConfigurationRepository;
 
   constructor(db?: AdminMockDatabase) {
     this.db = db || AdminMockDatabase.getInstance();
+
+    this.tenantRepo = new PostgresTenantRepository(this.db);
+    this.auditRepo = new PostgresAuditRecordRepository(this.db);
+    this.providerRepo = new PostgresAIProviderConfigurationRepository(this.db);
   }
 
   /**
    * Handle: GetPlatformOverviewQuery
    */
   public async handleGetPlatformOverview(): Promise<PlatformOverviewDTO> {
-    const tenantsList = Array.from(this.db.tenants.values());
+    const tenantsList = await this.tenantRepo.findAll();
     const activeTenants = tenantsList.filter(t => t.status === "active").length;
     const usersCount = tenantsList.reduce((sum, t) => sum + t.quota.maxUsers, 0);
 
@@ -631,10 +547,7 @@ export class ApplicationAdminQueryHandler {
    * Handle: GetTenantListQuery
    */
   public async handleGetTenantList(query: GetTenantListQuery): Promise<TenantDTO[]> {
-    let list = Array.from(this.db.tenants.values());
-    if (query.statusFilter) {
-      list = list.filter(t => t.status === query.statusFilter);
-    }
+    const list = await this.tenantRepo.findAll(query.statusFilter);
     return list.map(t => AdminDTOMappers.tenantToDTO(t));
   }
 
@@ -642,7 +555,7 @@ export class ApplicationAdminQueryHandler {
    * Handle: GetTenantUsageQuery
    */
   public async handleGetTenantUsage(query: GetTenantUsageQuery): Promise<TenantDTO> {
-    const tenant = this.db.tenants.get(query.tenantId);
+    const tenant = await this.tenantRepo.findById(query.tenantId);
     if (!tenant) {
       throw new Error(`Tenant with ID ${query.tenantId} not found.`);
     }
@@ -653,12 +566,13 @@ export class ApplicationAdminQueryHandler {
    * Handle: GetUserAuditHistoryQuery
    */
   public async handleGetUserAuditHistory(query: GetUserAuditHistoryQuery): Promise<AuditRecordDTO[]> {
-    let records = this.db.auditRecords;
+    let records: AuditRecord[] = [];
     if (query.targetUserId) {
-      records = records.filter(r => r.actorId === query.targetUserId);
-    }
-    if (query.targetTenantId) {
-      records = records.filter(r => r.resourceId === query.targetTenantId && r.resourceType === "tenant");
+      records = await this.auditRepo.findByActorId(query.targetUserId);
+    } else if (query.targetTenantId) {
+      records = await this.auditRepo.findByResourceId("tenant", query.targetTenantId);
+    } else {
+      records = await this.auditRepo.findAll();
     }
     return records.map(r => AdminDTOMappers.auditRecordToDTO(r));
   }
@@ -688,7 +602,7 @@ export class ApplicationAdminQueryHandler {
    * Handle: GetAIUsageStatisticsQuery
    */
   public async handleGetAIUsageStatistics(query: GetAIUsageStatisticsQuery) {
-    const providers = Array.from(this.db.aiProviders.values());
+    const providers = await this.providerRepo.findAll();
     const matched = query.providerId ? providers.filter(p => p.id === query.providerId) : providers;
 
     return matched.map(p => ({
