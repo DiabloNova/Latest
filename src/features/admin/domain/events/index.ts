@@ -31,6 +31,15 @@ export interface TenantCreatedPayload {
 }
 export type TenantCreatedEvent = AdminDomainEvent<TenantCreatedPayload>;
 
+// 1b. AdminUserCreatedEvent
+export interface AdminUserCreatedPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+  createdBy: string;
+}
+export type AdminUserCreatedEvent = AdminDomainEvent<AdminUserCreatedPayload>;
+
 // 2. TenantSuspendedEvent
 export interface TenantSuspendedPayload {
   tenantId: string;
@@ -67,6 +76,15 @@ export interface AIProviderUpdatedPayload {
   updatedBy: string;
 }
 export type AIProviderUpdatedEvent = AdminDomainEvent<AIProviderUpdatedPayload>;
+
+// 5b. AIProviderConfiguredEvent
+export interface AIProviderConfiguredPayload {
+  providerId: string;
+  providerName: string;
+  endpointUrl: string;
+  configuredBy: string;
+}
+export type AIProviderConfiguredEvent = AdminDomainEvent<AIProviderConfiguredPayload>;
 
 // 6. SecurityPolicyViolationEvent
 export interface SecurityPolicyViolationPayload {
