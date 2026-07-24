@@ -4,6 +4,13 @@
 
 import { AdminMockDatabase } from "../../../src/features/admin/infrastructure/mock-db";
 import { ApplicationAdminCommandHandler, ApplicationAdminQueryHandler } from "../../../src/features/admin/application/handlers";
+import {
+  PostgresTenantRepository,
+  PostgresAdminUserRepository,
+  PostgresFeatureFlagRepository,
+  PostgresAIProviderConfigurationRepository,
+  PostgresAuditRecordRepository
+} from "../../../src/features/admin/infrastructure/persistence/postgres";
 
 export async function testCQRS() {
   console.log("▶ Running Admin CQRS Application Layer Tests...");
@@ -11,8 +18,15 @@ export async function testCQRS() {
   const db = AdminMockDatabase.getInstance();
   db.clear(); // Reset database to clean seed state
 
-  const commandHandler = new ApplicationAdminCommandHandler(db);
-  const queryHandler = new ApplicationAdminQueryHandler(db);
+  // Seed the real PostgreSQL repositories from the seed DB!
+  PostgresTenantRepository.seed(Array.from(db.tenants.values()));
+  PostgresAdminUserRepository.seed(Array.from(db.adminUsers.values()));
+  PostgresFeatureFlagRepository.seed(Array.from(db.featureFlags.values()));
+  PostgresAIProviderConfigurationRepository.seed(Array.from(db.aiProviders.values()));
+  PostgresAuditRecordRepository.seed(db.auditRecords);
+
+  const commandHandler = new ApplicationAdminCommandHandler();
+  const queryHandler = new ApplicationAdminQueryHandler();
 
   // 1. Test CreateTenantCommand
   const createDto = await commandHandler.handleCreateTenant({

@@ -7,7 +7,13 @@ import { APIResponseEnvelope, APIErrorContract } from "../../../../ai-intelligen
 import { TenantDTO, AdminUserDTO, AuditRecordDTO, AIProviderDTO, PlatformOverviewDTO, SystemHealthDTO, FeatureFlagDTO } from "../../../application/dto";
 import { ApplicationAdminCommandHandler, ApplicationAdminQueryHandler } from "../../../application/handlers";
 import { UserRole, Permission, TenantQuota, AIModelConfiguration, AdminUser, AIProviderConfiguration, FeatureFlag } from "../../../domain/types";
-import { AdminMockDatabase } from "../../../infrastructure/mock-db";
+import {
+  PostgresTenantRepository,
+  PostgresAdminUserRepository,
+  PostgresFeatureFlagRepository,
+  PostgresAIProviderConfigurationRepository,
+  PostgresClient
+} from "../../../infrastructure/persistence/postgres";
 
 // Standard Request Interfaces
 export interface CreateTenantRequest {
@@ -51,15 +57,22 @@ export const createAdminError = (code: string, message: string): APIErrorContrac
 export class AdminAPIClient {
   private commandHandler: ApplicationAdminCommandHandler;
   private queryHandler: ApplicationAdminQueryHandler;
+  private pgClient: PostgresClient;
+
+  private tenantRepo: PostgresTenantRepository;
+  private userRepo: PostgresAdminUserRepository;
+  private flagRepo: PostgresFeatureFlagRepository;
+  private providerRepo: PostgresAIProviderConfigurationRepository;
 
   constructor() {
-    this.commandHandler = new ApplicationAdminCommandHandler();
-    this.queryHandler = new ApplicationAdminQueryHandler();
-  }
+    this.pgClient = PostgresClient.getInstance();
+    this.commandHandler = new ApplicationAdminCommandHandler(this.pgClient);
+    this.queryHandler = new ApplicationAdminQueryHandler(this.pgClient);
 
-  private getDb(): AdminMockDatabase {
-    const handlerWithDb = this.commandHandler as unknown as { db: AdminMockDatabase };
-    return handlerWithDb.db;
+    this.tenantRepo = new PostgresTenantRepository(this.pgClient);
+    this.userRepo = new PostgresAdminUserRepository(this.pgClient);
+    this.flagRepo = new PostgresFeatureFlagRepository(this.pgClient);
+    this.providerRepo = new PostgresAIProviderConfigurationRepository(this.pgClient);
   }
 
   private envelope<T>(data: T): APIResponseEnvelope<T> {
@@ -169,8 +182,7 @@ export class AdminAPIClient {
    */
   public async getUsers(): Promise<APIResponseEnvelope<AdminUserDTO[]>> {
     try {
-      const db = this.getDb();
-      const usersList = Array.from(db.adminUsers.values());
+      const usersList = await this.userRepo.findAll();
       const dtos: AdminUserDTO[] = usersList.map((user: AdminUser) => ({
         id: user.id,
         email: user.email,
@@ -222,8 +234,7 @@ export class AdminAPIClient {
    */
   public async getAIProviders(): Promise<APIResponseEnvelope<AIProviderDTO[]>> {
     try {
-      const db = this.getDb();
-      const list = Array.from(db.aiProviders.values());
+      const list = await this.providerRepo.findAll();
       const dtos: AIProviderDTO[] = list.map((p: AIProviderConfiguration) => ({
         id: p.id,
         providerName: p.providerName,
@@ -301,8 +312,7 @@ export class AdminAPIClient {
    */
   public async getFeatureFlags(): Promise<APIResponseEnvelope<FeatureFlagDTO[]>> {
     try {
-      const db = this.getDb();
-      const flags = Array.from(db.featureFlags.values());
+      const flags = await this.flagRepo.findAll();
       const dtos: FeatureFlagDTO[] = flags.map((f: FeatureFlag) => ({
         id: f.id,
         key: f.key,

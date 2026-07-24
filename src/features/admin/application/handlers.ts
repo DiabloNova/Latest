@@ -27,19 +27,18 @@ import { AdminDTOMappers } from "./mappers";
 import { Tenant, AuditRecord } from "../domain/types";
 import { TenantAggregate, AdminUserAggregate, FeatureFlagAggregate } from "../domain/entities";
 import { AdminDomainEventFactory } from "../domain/events";
-import { AdminMockDatabase } from "../infrastructure/mock-db";
 import { UnitOfWork } from "../infrastructure/persistence/uow";
 import {
   PostgresTenantRepository,
   PostgresAdminUserRepository,
   PostgresFeatureFlagRepository,
   PostgresAuditRecordRepository,
-  PostgresAIProviderConfigurationRepository
-} from "../infrastructure/persistence/repositories";
+  PostgresAIProviderConfigurationRepository,
+  PostgresClient
+} from "../infrastructure/persistence/postgres";
 import { DomainEvent } from "../../ai-intelligence/domain/events";
 
 export class ApplicationAdminCommandHandler {
-  private db: AdminMockDatabase;
   private uow: UnitOfWork;
 
   private tenantRepo: PostgresTenantRepository;
@@ -48,15 +47,15 @@ export class ApplicationAdminCommandHandler {
   private auditRepo: PostgresAuditRecordRepository;
   private providerRepo: PostgresAIProviderConfigurationRepository;
 
-  constructor(db?: AdminMockDatabase, uow?: UnitOfWork) {
-    this.db = db || AdminMockDatabase.getInstance();
-    this.uow = uow || new UnitOfWork();
+  constructor(pg?: PostgresClient, uow?: UnitOfWork) {
+    const postgresClient = pg || PostgresClient.getInstance();
+    this.uow = uow || new UnitOfWork(postgresClient);
 
-    this.tenantRepo = new PostgresTenantRepository(this.db, this.uow);
-    this.userRepo = new PostgresAdminUserRepository(this.db, this.uow);
-    this.flagRepo = new PostgresFeatureFlagRepository(this.db, this.uow);
-    this.auditRepo = new PostgresAuditRecordRepository(this.db, this.uow);
-    this.providerRepo = new PostgresAIProviderConfigurationRepository(this.db, this.uow);
+    this.tenantRepo = new PostgresTenantRepository(postgresClient);
+    this.userRepo = new PostgresAdminUserRepository(postgresClient);
+    this.flagRepo = new PostgresFeatureFlagRepository(postgresClient);
+    this.auditRepo = new PostgresAuditRecordRepository(postgresClient);
+    this.providerRepo = new PostgresAIProviderConfigurationRepository(postgresClient);
   }
 
   private async appendAudit(record: Omit<AuditRecord, "id" | "timestamp">): Promise<AuditRecord> {
@@ -508,17 +507,16 @@ export class ApplicationAdminCommandHandler {
 }
 
 export class ApplicationAdminQueryHandler {
-  private db: AdminMockDatabase;
   private tenantRepo: PostgresTenantRepository;
   private auditRepo: PostgresAuditRecordRepository;
   private providerRepo: PostgresAIProviderConfigurationRepository;
 
-  constructor(db?: AdminMockDatabase) {
-    this.db = db || AdminMockDatabase.getInstance();
+  constructor(pg?: PostgresClient) {
+    const postgresClient = pg || PostgresClient.getInstance();
 
-    this.tenantRepo = new PostgresTenantRepository(this.db);
-    this.auditRepo = new PostgresAuditRecordRepository(this.db);
-    this.providerRepo = new PostgresAIProviderConfigurationRepository(this.db);
+    this.tenantRepo = new PostgresTenantRepository(postgresClient);
+    this.auditRepo = new PostgresAuditRecordRepository(postgresClient);
+    this.providerRepo = new PostgresAIProviderConfigurationRepository(postgresClient);
   }
 
   /**
