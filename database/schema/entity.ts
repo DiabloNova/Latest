@@ -146,8 +146,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_entities_wikidata ON entities(wikidata_id)
 ALTER TABLE entities ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON entities;
-CREATE POLICY tenant_isolation_policy ON entities
-  FOR ALL
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON entities;
+CREATE POLICY select_tenant_isolation_policy ON entities
+  FOR SELECT
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON entities;
+CREATE POLICY insert_tenant_isolation_policy ON entities
+  FOR INSERT
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON entities;
+CREATE POLICY update_tenant_isolation_policy ON entities
+  FOR UPDATE
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON entities;
+CREATE POLICY delete_tenant_isolation_policy ON entities
+  FOR DELETE
   USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
@@ -282,8 +300,26 @@ CREATE INDEX IF NOT EXISTS idx_relationships_target ON entity_relationships(targ
 ALTER TABLE entity_relationships ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON entity_relationships;
-CREATE POLICY tenant_isolation_policy ON entity_relationships
-  FOR ALL
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON entity_relationships;
+CREATE POLICY select_tenant_isolation_policy ON entity_relationships
+  FOR SELECT
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON entity_relationships;
+CREATE POLICY insert_tenant_isolation_policy ON entity_relationships
+  FOR INSERT
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON entity_relationships;
+CREATE POLICY update_tenant_isolation_policy ON entity_relationships
+  FOR UPDATE
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON entity_relationships;
+CREATE POLICY delete_tenant_isolation_policy ON entity_relationships
+  FOR DELETE
   USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

@@ -174,8 +174,26 @@ CREATE INDEX IF NOT EXISTS idx_observations_executed ON ai_observations(executed
 ALTER TABLE ai_observations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON ai_observations;
-CREATE POLICY tenant_isolation_policy ON ai_observations
-  FOR ALL
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON ai_observations;
+CREATE POLICY select_tenant_isolation_policy ON ai_observations
+  FOR SELECT
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON ai_observations;
+CREATE POLICY insert_tenant_isolation_policy ON ai_observations
+  FOR INSERT
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON ai_observations;
+CREATE POLICY update_tenant_isolation_policy ON ai_observations
+  FOR UPDATE
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON ai_observations;
+CREATE POLICY delete_tenant_isolation_policy ON ai_observations
+  FOR DELETE
   USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
@@ -352,8 +370,26 @@ CREATE INDEX IF NOT EXISTS idx_mentions_entity ON brand_mentions(entity_id);
 ALTER TABLE brand_mentions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON brand_mentions;
-CREATE POLICY tenant_isolation_policy ON brand_mentions
-  FOR ALL
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON brand_mentions;
+CREATE POLICY select_tenant_isolation_policy ON brand_mentions
+  FOR SELECT
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON brand_mentions;
+CREATE POLICY insert_tenant_isolation_policy ON brand_mentions
+  FOR INSERT
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON brand_mentions;
+CREATE POLICY update_tenant_isolation_policy ON brand_mentions
+  FOR UPDATE
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON brand_mentions;
+CREATE POLICY delete_tenant_isolation_policy ON brand_mentions
+  FOR DELETE
   USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

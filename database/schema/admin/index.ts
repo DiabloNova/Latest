@@ -1,8 +1,3 @@
-/**
- * Phase 7C.5 — Enterprise Admin Database Schema Specifications
- * Drizzle-compatible metadata schemas with full PostgreSQL compliance.
- */
-
 import { TableDefinition } from "../types";
 
 export const adminUsersTable: TableDefinition = {
@@ -233,6 +228,30 @@ CREATE TABLE IF NOT EXISTS tenant_quotas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tenant_quotas_tenant ON tenant_quotas(tenant_id);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE tenant_quotas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON tenant_quotas;
+CREATE POLICY select_tenant_isolation_policy ON tenant_quotas
+  FOR SELECT
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON tenant_quotas;
+CREATE POLICY insert_tenant_isolation_policy ON tenant_quotas
+  FOR INSERT
+  WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON tenant_quotas;
+CREATE POLICY update_tenant_isolation_policy ON tenant_quotas
+  FOR UPDATE
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON tenant_quotas;
+CREATE POLICY delete_tenant_isolation_policy ON tenant_quotas
+  FOR DELETE
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
 
@@ -270,6 +289,30 @@ CREATE TABLE IF NOT EXISTS tenant_subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tenant_subscriptions_tenant ON tenant_subscriptions(tenant_id);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE tenant_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON tenant_subscriptions;
+CREATE POLICY select_tenant_isolation_policy ON tenant_subscriptions
+  FOR SELECT
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON tenant_subscriptions;
+CREATE POLICY insert_tenant_isolation_policy ON tenant_subscriptions
+  FOR INSERT
+  WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON tenant_subscriptions;
+CREATE POLICY update_tenant_isolation_policy ON tenant_subscriptions
+  FOR UPDATE
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON tenant_subscriptions;
+CREATE POLICY delete_tenant_isolation_policy ON tenant_subscriptions
+  FOR DELETE
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
 

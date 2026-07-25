@@ -91,5 +91,29 @@ CREATE TABLE IF NOT EXISTS organizations (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug) WHERE deleted_at IS NULL;
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation on organizations
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON organizations;
+CREATE POLICY select_tenant_isolation_policy ON organizations
+  FOR SELECT
+  USING (id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON organizations;
+CREATE POLICY insert_tenant_isolation_policy ON organizations
+  FOR INSERT
+  WITH CHECK (id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON organizations;
+CREATE POLICY update_tenant_isolation_policy ON organizations
+  FOR UPDATE
+  USING (id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON organizations;
+CREATE POLICY delete_tenant_isolation_policy ON organizations
+  FOR DELETE
+  USING (id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
