@@ -470,6 +470,10 @@ export class BrandRepository implements IBrandRepository {
   }
 
   public async save(brand: Brand): Promise<Brand> {
+    const existing = db.brands.get(brand.id);
+    if (existing && existing.organizationId !== brand.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Brand.");
+    }
     db.brands.set(brand.id, brand);
     return brand;
   }
@@ -501,6 +505,10 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async save(entity: Entity): Promise<Entity> {
+    const existing = db.entities.get(entity.id);
+    if (existing && existing.organizationId !== entity.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Entity.");
+    }
     db.entities.set(entity.id, entity);
     return entity;
   }
@@ -521,6 +529,14 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async saveRelationship(relationship: EntityRelationship): Promise<EntityRelationship> {
+    const existing = db.relationships.find(
+      r => r.sourceEntityId === relationship.sourceEntityId &&
+           r.targetEntityId === relationship.targetEntityId &&
+           r.relationshipType === relationship.relationshipType
+    );
+    if (existing && existing.organizationId !== relationship.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Relationship.");
+    }
     db.relationships = db.relationships.filter(
       r => !(r.sourceEntityId === relationship.sourceEntityId &&
              r.targetEntityId === relationship.targetEntityId &&
@@ -588,6 +604,10 @@ export class PromptRepository implements IPromptRepository {
   }
 
   public async save(prompt: Prompt): Promise<Prompt> {
+    const existing = db.prompts.get(prompt.id);
+    if (existing && existing.organizationId !== prompt.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Prompt.");
+    }
     db.prompts.set(prompt.id, prompt);
     return prompt;
   }
@@ -626,6 +646,10 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async save(observation: AIObservation): Promise<AIObservation> {
+    const existing = db.observations.get(observation.id);
+    if (existing && existing.organizationId !== observation.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Observation.");
+    }
     db.observations.set(observation.id, observation);
     return observation;
   }
@@ -647,6 +671,10 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async saveMention(mention: BrandMention): Promise<BrandMention> {
+    const existing = db.mentions.get(mention.id);
+    if (existing && existing.organizationId !== mention.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Mention.");
+    }
     db.mentions.set(mention.id, mention);
     return mention;
   }
@@ -659,6 +687,10 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async saveCitation(citation: Citation): Promise<Citation> {
+    const existing = db.citations.get(citation.id);
+    if (existing && existing.organizationId !== citation.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Citation.");
+    }
     db.citations.set(citation.id, citation);
     return citation;
   }
@@ -673,6 +705,10 @@ export class VisibilityScoreRepository implements IVisibilityScoreRepository {
   }
 
   public async save(score: VisibilityScore): Promise<VisibilityScore> {
+    const existing = db.visibilityScores.get(score.id);
+    if (existing && existing.organizationId !== score.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing VisibilityScore.");
+    }
     db.visibilityScores.set(score.id, score);
     return score;
   }
@@ -696,6 +732,10 @@ export class RecommendationRepository implements IRecommendationRepository {
   }
 
   public async save(rec: Recommendation): Promise<Recommendation> {
+    const existing = db.recommendations.get(rec.id);
+    if (existing && existing.organizationId !== rec.organizationId) {
+      throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Recommendation.");
+    }
     db.recommendations.set(rec.id, rec);
     return rec;
   }
