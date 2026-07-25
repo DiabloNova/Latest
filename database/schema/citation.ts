@@ -131,5 +131,13 @@ CREATE TABLE IF NOT EXISTS citations (
 CREATE INDEX IF NOT EXISTS idx_citations_organization ON citations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_citations_observation ON citations(observation_id);
 CREATE INDEX IF NOT EXISTS idx_citations_domain ON citations(domain);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE citations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON citations;
+CREATE POLICY tenant_isolation_policy ON citations
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

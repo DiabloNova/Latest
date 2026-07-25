@@ -169,6 +169,14 @@ CREATE INDEX IF NOT EXISTS idx_observations_organization ON ai_observations(orga
 CREATE INDEX IF NOT EXISTS idx_observations_prompt ON ai_observations(prompt_id);
 CREATE INDEX IF NOT EXISTS idx_observations_engine ON ai_observations(engine_id);
 CREATE INDEX IF NOT EXISTS idx_observations_executed ON ai_observations(executed_at);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE ai_observations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON ai_observations;
+CREATE POLICY tenant_isolation_policy ON ai_observations
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
 
@@ -339,5 +347,13 @@ CREATE TABLE IF NOT EXISTS brand_mentions (
 CREATE INDEX IF NOT EXISTS idx_mentions_organization ON brand_mentions(organization_id);
 CREATE INDEX IF NOT EXISTS idx_mentions_observation ON brand_mentions(observation_id);
 CREATE INDEX IF NOT EXISTS idx_mentions_entity ON brand_mentions(entity_id);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE brand_mentions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON brand_mentions;
+CREATE POLICY tenant_isolation_policy ON brand_mentions
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

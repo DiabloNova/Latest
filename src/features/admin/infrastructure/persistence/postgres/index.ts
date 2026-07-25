@@ -292,6 +292,23 @@ export class PostgresTenantRepository implements ITenantRepository {
 
   public async save(entity: Tenant): Promise<Tenant> {
     const execute = async () => {
+      // Guard against cross-tenant slug conflicts / identity hijack
+      const slugSql = `SELECT id FROM tenants WHERE slug = $1 AND deleted_at IS NULL LIMIT 1;`;
+      const slugRes = await this.getExecutor().query(slugSql, [entity.slug]);
+      if (slugRes.rows && slugRes.rows.length > 0) {
+        const slugId = slugRes.rows[0].id;
+        if (slugId !== entity.id) {
+          throw new Error("Tenant Isolation Exception: Cannot modify or change tenantId ownership or conflict with existing tenant.");
+        }
+      }
+
+      // Check fallback in-memory store for slug conflict in offline simulation
+      for (const t of PostgresTenantRepository.store.values()) {
+        if (t.slug === entity.slug && t.id !== entity.id && !t.audit.deletedAt) {
+          throw new Error("Tenant Isolation Exception: Cannot modify or change tenantId ownership or conflict with existing tenant.");
+        }
+      }
+
       let existing: Tenant | null = null;
       const findSql = `SELECT * FROM tenants WHERE id = $1 LIMIT 1;`;
       const res = await this.getExecutor().query(findSql, [entity.id]);
@@ -322,6 +339,10 @@ export class PostgresTenantRepository implements ITenantRepository {
       }
 
       if (existing) {
+        if (existing.id !== entity.id) {
+          throw new Error("Tenant Isolation Exception: Cannot modify or change tenantId ownership or conflict with existing tenant.");
+        }
+
         const versionDiff = entity.audit.version - existing.audit.version;
         if (versionDiff !== 0 && versionDiff !== 1) {
           throw new OptimisticLockingError("Tenant", entity.audit.version, existing.audit.version);

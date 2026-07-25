@@ -3,7 +3,8 @@
  */
 
 import { ROLE_HIERARCHY, RoleHierarchyResolver, PermissionChecker, AdminAuthorizationGuard } from "../../../src/features/admin/security";
-import { AdminUser } from "../../../src/features/admin/domain/types";
+import { AdminUser, Tenant } from "../../../src/features/admin/domain/types";
+import { PostgresTenantRepository } from "../../../src/features/admin/infrastructure/persistence/postgres";
 
 export function testSecurity() {
   console.log("▶ Running Admin Security & Access Control Tests...");
@@ -83,6 +84,55 @@ export function testSecurity() {
   const unmaskedVal = AdminAuthorizationGuard.maskSensitiveValue("endpointUrl", "https://api.openai.com/v1");
   if (unmaskedVal !== "https://api.openai.com/v1") {
     throw new Error(`Security Test Failed: Non-sensitive values should not be masked, got ${unmaskedVal}`);
+  }
+
+  // 6. Test Admin Persistence Tenant Isolation Slug/ID Conflicts
+  console.log("  * Testing Admin Persistence Tenant Isolation Guards...");
+  const tenantRepo = new PostgresTenantRepository();
+  PostgresTenantRepository.seed([]);
+
+  const mockAudit = {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: "security-test",
+    updatedBy: "security-test",
+    version: 1
+  };
+
+  const tenantA: Tenant = {
+    id: "tenant-a-uuid",
+    name: "Tenant A",
+    slug: "tenant-shared-slug",
+    status: "active",
+    configuration: { allowedIPRanges: [], mfaRequired: false, ssoRequired: false, dataRetentionDays: 30, isIranMarketLocalised: false },
+    quota: { maxUsers: 5, maxBrands: 1, maxPrompts: 5, maxObservationsPerMonth: 100, maxCrawlJobsPerDay: 5, monthlyTokenLimit: 1000, monthlyCostLimitUsd: 10, usedObservationsThisMonth: 0, usedTokensThisMonth: 0, usedCrawlJobsToday: 0 },
+    subscription: { plan: "free", status: "active", billingCycle: "monthly", startDate: "", endDate: "", priceAmount: 0, currency: "USD" },
+    audit: mockAudit
+  };
+
+  const tenantB: Tenant = {
+    id: "tenant-b-uuid",
+    name: "Tenant B",
+    slug: "tenant-shared-slug", // Conflict slug
+    status: "active",
+    configuration: { allowedIPRanges: [], mfaRequired: false, ssoRequired: false, dataRetentionDays: 30, isIranMarketLocalised: false },
+    quota: { maxUsers: 5, maxBrands: 1, maxPrompts: 5, maxObservationsPerMonth: 100, maxCrawlJobsPerDay: 5, monthlyTokenLimit: 1000, monthlyCostLimitUsd: 10, usedObservationsThisMonth: 0, usedTokensThisMonth: 0, usedCrawlJobsToday: 0 },
+    subscription: { plan: "free", status: "active", billingCycle: "monthly", startDate: "", endDate: "", priceAmount: 0, currency: "USD" },
+    audit: mockAudit
+  };
+
+  // Save Tenant A successfully
+  tenantRepo.save(tenantA);
+
+  // Attempt to save Tenant B with the same slug should throw Tenant Isolation Exception
+  try {
+    tenantRepo.save(tenantB);
+    throw new Error("Security Test Failed: Expected Tenant Isolation Exception for duplicate slug!");
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (!errMsg.includes("Tenant Isolation Exception")) {
+      throw err;
+    }
   }
 
   console.log("✅ Admin Security & Access Control Tests Passed Successfully!");

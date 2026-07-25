@@ -159,5 +159,13 @@ CREATE INDEX IF NOT EXISTS idx_visibility_organization ON visibility_scores(orga
 CREATE INDEX IF NOT EXISTS idx_visibility_brand ON visibility_scores(brand_id);
 CREATE INDEX IF NOT EXISTS idx_visibility_engine ON visibility_scores(engine_id);
 CREATE INDEX IF NOT EXISTS idx_visibility_date ON visibility_scores(date);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE visibility_scores ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON visibility_scores;
+CREATE POLICY tenant_isolation_policy ON visibility_scores
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

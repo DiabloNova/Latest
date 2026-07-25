@@ -141,6 +141,14 @@ CREATE TABLE IF NOT EXISTS entities (
 CREATE INDEX IF NOT EXISTS idx_entities_organization ON entities(organization_id);
 CREATE INDEX IF NOT EXISTS idx_entities_brand ON entities(brand_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_entities_wikidata ON entities(wikidata_id) WHERE wikidata_id IS NOT NULL AND deleted_at IS NULL;
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE entities ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON entities;
+CREATE POLICY tenant_isolation_policy ON entities
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
 
@@ -269,5 +277,13 @@ CREATE TABLE IF NOT EXISTS entity_relationships (
 CREATE INDEX IF NOT EXISTS idx_relationships_organization ON entity_relationships(organization_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_source ON entity_relationships(source_entity_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_target ON entity_relationships(target_entity_id);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE entity_relationships ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON entity_relationships;
+CREATE POLICY tenant_isolation_policy ON entity_relationships
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

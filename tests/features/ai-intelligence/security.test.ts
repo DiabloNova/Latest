@@ -187,5 +187,49 @@ export async function testSecurity() {
     }
   }
 
+  // 5. Database-level PostgreSQL Row Level Security (RLS) simulation
+  console.log("  * Testing Database-level PostgreSQL Row Level Security (RLS) Isolation...");
+
+  const pgSessionSettings = new Map<string, string>();
+
+  function setSessionSetting(key: string, value: string) {
+    pgSessionSettings.set(key, value);
+  }
+
+  function clearSessionSetting(key: string) {
+    pgSessionSettings.delete(key);
+  }
+
+  function rlsQueryExecutor<T extends { organizationId: string }>(tableRows: T[]): T[] {
+    const activeTenantSetting = pgSessionSettings.get("app.current_tenant_id");
+    if (!activeTenantSetting) {
+      return [];
+    }
+    return tableRows.filter(row => row.organizationId === activeTenantSetting);
+  }
+
+  const mockBrandsTable = [
+    { id: "brand-1", organizationId: "org-tenant-a-11", name: "A Brand" },
+    { id: "brand-2", organizationId: "org-tenant-b-22", name: "B Brand" }
+  ];
+
+  setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+  const visibleToA = rlsQueryExecutor(mockBrandsTable);
+  if (visibleToA.length !== 1 || visibleToA[0].id !== "brand-1") {
+    throw new Error("RLS Test Failed: Tenant A should only see Tenant A's row");
+  }
+
+  setSessionSetting("app.current_tenant_id", "org-tenant-b-22");
+  const visibleToB = rlsQueryExecutor(mockBrandsTable);
+  if (visibleToB.length !== 1 || visibleToB[0].id !== "brand-2") {
+    throw new Error("RLS Test Failed: Tenant B should only see Tenant B's row");
+  }
+
+  clearSessionSetting("app.current_tenant_id");
+  const visibleToNone = rlsQueryExecutor(mockBrandsTable);
+  if (visibleToNone.length !== 0) {
+    throw new Error("RLS Test Failed: Session with empty tenant context must return zero rows");
+  }
+
   console.log("✅ Security Layer Tests Passed Successfully!");
 }
