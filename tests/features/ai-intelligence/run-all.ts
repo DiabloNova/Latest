@@ -102,7 +102,7 @@ async function main() {
 
   try {
     testDomain();
-    testSecurity();
+    await testSecurity();
     await testApplication();
     testEvents();
 
