@@ -122,8 +122,26 @@ CREATE INDEX IF NOT EXISTS idx_brands_deleted_at ON brands(deleted_at) WHERE del
 ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON brands;
-CREATE POLICY tenant_isolation_policy ON brands
-  FOR ALL
+
+DROP POLICY IF EXISTS select_tenant_isolation_policy ON brands;
+CREATE POLICY select_tenant_isolation_policy ON brands
+  FOR SELECT
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS insert_tenant_isolation_policy ON brands;
+CREATE POLICY insert_tenant_isolation_policy ON brands
+  FOR INSERT
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS update_tenant_isolation_policy ON brands;
+CREATE POLICY update_tenant_isolation_policy ON brands
+  FOR UPDATE
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+DROP POLICY IF EXISTS delete_tenant_isolation_policy ON brands;
+CREATE POLICY delete_tenant_isolation_policy ON brands
+  FOR DELETE
   USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

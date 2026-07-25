@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TenantSecurityGuard, SensitiveDataProtector, SecurityActor } from "../../../src/features/ai-intelligence/security";
 import {
   BrandRepository,
@@ -190,6 +191,7 @@ export async function testSecurity() {
   // 5. Database-level PostgreSQL Row Level Security (RLS) simulation
   console.log("  * Testing Database-level PostgreSQL Row Level Security (RLS) Isolation...");
 
+  // Setup active PostgreSQL session context
   const pgSessionSettings = new Map<string, string>();
 
   function setSessionSetting(key: string, value: string) {
@@ -200,36 +202,241 @@ export async function testSecurity() {
     pgSessionSettings.delete(key);
   }
 
-  function rlsQueryExecutor<T extends { organizationId: string }>(tableRows: T[]): T[] {
-    const activeTenantSetting = pgSessionSettings.get("app.current_tenant_id");
-    if (!activeTenantSetting) {
-      return [];
-    }
-    return tableRows.filter(row => row.organizationId === activeTenantSetting);
+  function getSessionTenantId(): string | null {
+    return pgSessionSettings.get("app.current_tenant_id") || null;
   }
 
-  const mockBrandsTable = [
-    { id: "brand-1", organizationId: "org-tenant-a-11", name: "A Brand" },
-    { id: "brand-2", organizationId: "org-tenant-b-22", name: "B Brand" }
+  /**
+   * Database-level RLS Engine Simulator matching explicit PostgreSQL policies:
+   * - SELECT: USING (tenantColumn = app.current_tenant_id)
+   * - INSERT: WITH CHECK (tenantColumn = app.current_tenant_id)
+   * - UPDATE: USING (tenantColumn = app.current_tenant_id) WITH CHECK (tenantColumn = app.current_tenant_id)
+   * - DELETE: USING (tenantColumn = app.current_tenant_id)
+   */
+  class PostgresRLSEngine<T extends Record<string, any>> {
+    private tableName: string;
+    private tenantColumn: string;
+    private rows: T[] = [];
+
+    constructor(tableName: string, tenantColumn: string) {
+      this.tableName = tableName;
+      this.tenantColumn = tenantColumn;
+    }
+
+    private getRowTenantId(row: T): string {
+      return row[this.tenantColumn];
+    }
+
+    // Seed database table with raw rows bypass RLS
+    public seedBypassRLS(rawRows: T[]) {
+      this.rows = [...rawRows];
+    }
+
+    public getRawStore(): T[] {
+      return this.rows;
+    }
+
+    // Simulates SELECT query evaluation under active session settings
+    public select(): T[] {
+      const activeTenant = getSessionTenantId();
+      if (!activeTenant) return [];
+      return this.rows.filter(row => this.getRowTenantId(row) === activeTenant);
+    }
+
+    // Simulates INSERT query with CHECK policy
+    public insert(newRow: T): void {
+      const activeTenant = getSessionTenantId();
+      // WITH CHECK policy validation
+      if (!activeTenant || this.getRowTenantId(newRow) !== activeTenant) {
+        throw new Error(`PostgreSQL RLS Error: INSERT WITH CHECK violation on table '${this.tableName}'. Expected tenant '${activeTenant}', got '${this.getRowTenantId(newRow)}'.`);
+      }
+      this.rows.push(newRow);
+    }
+
+    // Simulates UPDATE query with USING + WITH CHECK policy
+    public update(rowId: string, updatedRowFields: Partial<T>): void {
+      const activeTenant = getSessionTenantId();
+      if (!activeTenant) {
+        // No rows visible to update (0 rows affected)
+        return;
+      }
+
+      // First find the row that is visible to this transaction (USING clause validation)
+      const visibleRow = this.rows.find(row => row.id === rowId && this.getRowTenantId(row) === activeTenant);
+      if (!visibleRow) {
+        // Row not found or not visible (USING check blocked cross-tenant update)
+        return;
+      }
+
+      // Construct prospective row to validate WITH CHECK constraint
+      const prospectiveRow = { ...visibleRow, ...updatedRowFields };
+      if (this.getRowTenantId(prospectiveRow) !== activeTenant) {
+        // WITH CHECK constraint blocked ownership hijacking / tenant ID modification
+        throw new Error(`PostgreSQL RLS Error: UPDATE WITH CHECK violation on table '${this.tableName}'. Attempted to modify tenant ownership column '${this.tenantColumn}' from '${this.getRowTenantId(visibleRow)}' to '${this.getRowTenantId(prospectiveRow)}'.`);
+      }
+
+      // Perform update
+      const index = this.rows.findIndex(row => row.id === rowId);
+      this.rows[index] = prospectiveRow;
+    }
+
+    // Simulates DELETE query with USING policy
+    public delete(rowId: string): void {
+      const activeTenant = getSessionTenantId();
+      if (!activeTenant) {
+        // No rows visible to delete
+        return;
+      }
+
+      // Find the row that is visible to this transaction (USING clause validation)
+      const visibleIndex = this.rows.findIndex(row => row.id === rowId && this.getRowTenantId(row) === activeTenant);
+      if (visibleIndex === -1) {
+        // Row not found or not visible under active RLS (USING check blocked cross-tenant delete)
+        return;
+      }
+
+      // Perform delete
+      this.rows.splice(visibleIndex, 1);
+    }
+  }
+
+  // List of all 12 tenant-scoped tables with their respective partition columns
+  const tablesToVerify = [
+    { tableName: "organizations", tenantColumn: "id" },
+    { tableName: "brands", tenantColumn: "organizationId" },
+    { tableName: "entities", tenantColumn: "organizationId" },
+    { tableName: "entity_relationships", tenantColumn: "organizationId" },
+    { tableName: "prompts", tenantColumn: "organizationId" },
+    { tableName: "ai_observations", tenantColumn: "organizationId" },
+    { tableName: "brand_mentions", tenantColumn: "organizationId" },
+    { tableName: "citations", tenantColumn: "organizationId" },
+    { tableName: "visibility_scores", tenantColumn: "organizationId" },
+    { tableName: "recommendations", tenantColumn: "organizationId" },
+    { tableName: "tenant_quotas", tenantColumn: "tenantId" },
+    { tableName: "tenant_subscriptions", tenantColumn: "tenantId" }
   ];
 
-  setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
-  const visibleToA = rlsQueryExecutor(mockBrandsTable);
-  if (visibleToA.length !== 1 || visibleToA[0].id !== "brand-1") {
-    throw new Error("RLS Test Failed: Tenant A should only see Tenant A's row");
+  for (const { tableName, tenantColumn } of tablesToVerify) {
+    console.log(`  * Verification: [Table: ${tableName}, Key: ${tenantColumn}]`);
+
+    const rlsEngine = new PostgresRLSEngine<any>(tableName, tenantColumn);
+
+    const targetRowAId = tenantColumn === "id" ? "org-tenant-a-11" : `row-a-${tableName}`;
+    const targetRowBId = tenantColumn === "id" ? "org-tenant-b-22" : `row-b-${tableName}`;
+
+    // Seed rows
+    const rowA = { id: targetRowAId, [tenantColumn]: "org-tenant-a-11", name: `Tenant A ${tableName}` };
+    const rowB = { id: targetRowBId, [tenantColumn]: "org-tenant-b-22", name: `Tenant B ${tableName}` };
+    rlsEngine.seedBypassRLS([rowA, rowB]);
+
+    // Test SELECT Isolation
+    // Tenant A Context
+    setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    const selectA = rlsEngine.select();
+    if (selectA.length !== 1 || selectA[0].id !== rowA.id) {
+      throw new Error(`RLS Verification Failure on table '${tableName}': SELECT did not restrict query results to active tenant org-tenant-a-11.`);
+    }
+
+    // Tenant B Context
+    setSessionSetting("app.current_tenant_id", "org-tenant-b-22");
+    const selectB = rlsEngine.select();
+    if (selectB.length !== 1 || selectB[0].id !== rowB.id) {
+      throw new Error(`RLS Verification Failure on table '${tableName}': SELECT did not restrict query results to active tenant org-tenant-b-22.`);
+    }
+
+    // Empty Context
+    clearSessionSetting("app.current_tenant_id");
+    const selectNone = rlsEngine.select();
+    if (selectNone.length !== 0) {
+      throw new Error(`RLS Verification Failure on table '${tableName}': SELECT returned rows for empty session setting context.`);
+    }
+
+    // Test INSERT Isolation
+    // Secure Insertion (Tenant A insert Tenant A row)
+    const validInsertId = tenantColumn === "id" ? "org-tenant-a-new-11" : `row-a-new-${tableName}`;
+    const validInsertTenantId = tenantColumn === "id" ? "org-tenant-a-new-11" : "org-tenant-a-11";
+
+    if (tenantColumn === "id") {
+      setSessionSetting("app.current_tenant_id", "org-tenant-a-new-11");
+    } else {
+      setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    }
+
+    const validInsert = { id: validInsertId, [tenantColumn]: validInsertTenantId, name: "Valid A" };
+    rlsEngine.insert(validInsert);
+
+    // Cross-tenant Insert rejection
+    if (tenantColumn === "id") {
+      setSessionSetting("app.current_tenant_id", "org-tenant-a-new-11");
+    } else {
+      setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    }
+
+    const invalidInsert = { id: `row-b-new-${tableName}`, [tenantColumn]: "org-tenant-b-22", name: "Invalid B" };
+    try {
+      rlsEngine.insert(invalidInsert);
+      throw new Error(`RLS Verification Failure on table '${tableName}': Allowed cross-tenant INSERT of Tenant B row under Tenant A context!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("PostgreSQL RLS Error") || !msg.includes("INSERT WITH CHECK violation")) {
+        throw err;
+      }
+      // Rejection succeeded correctly!
+    }
+
+    // Test UPDATE Isolation
+    // Secure update
+    setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    rlsEngine.update(targetRowAId, { name: "Updated A Name" });
+    const rowAfterUpdate = rlsEngine.select().find(r => r.id === targetRowAId);
+    if (!rowAfterUpdate || rowAfterUpdate.name !== "Updated A Name") {
+      throw new Error(`RLS Verification Failure on table '${tableName}': Failed to perform valid UPDATE on owned row.`);
+    }
+
+    // Attempt to update Tenant B row under Tenant A context (USING clause should ignore)
+    rlsEngine.update(targetRowBId, { name: "Hacked B Name" });
+    // Verify Tenant B row remains unchanged
+    setSessionSetting("app.current_tenant_id", "org-tenant-b-22");
+    const tenantBRow = rlsEngine.select().find(r => r.id === targetRowBId);
+    if (tenantBRow.name === "Hacked B Name") {
+      throw new Error(`RLS Verification Failure on table '${tableName}': Allowed UPDATE on other tenant's row (Tenant B) under Tenant A session context!`);
+    }
+
+    // Attempt to hijack Tenant A row and change its ownership to Tenant B (WITH CHECK clause should reject)
+    setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    try {
+      rlsEngine.update(targetRowAId, { [tenantColumn]: "org-tenant-b-22" });
+      throw new Error(`RLS Verification Failure on table '${tableName}': Allowed modifying partition column '${tenantColumn}' to change ownership of existing record!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("PostgreSQL RLS Error") || !msg.includes("UPDATE WITH CHECK violation")) {
+        throw err;
+      }
+      // Hijack rejection succeeded correctly!
+    }
+
+    // Test DELETE Isolation
+    // Attempt to delete Tenant B row under Tenant A context
+    setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    rlsEngine.delete(targetRowBId);
+    // Verify Tenant B row was NOT deleted
+    setSessionSetting("app.current_tenant_id", "org-tenant-b-22");
+    const tenantBRowAfterDelete = rlsEngine.select().find(r => r.id === targetRowBId);
+    if (!tenantBRowAfterDelete) {
+      throw new Error(`RLS Verification Failure on table '${tableName}': Allowed deletion of other tenant's row (Tenant B) under Tenant A session context!`);
+    }
+
+    // Secure delete of own row
+    setSessionSetting("app.current_tenant_id", "org-tenant-a-11");
+    rlsEngine.delete(targetRowAId);
+    const selectAfterDelete = rlsEngine.select();
+    if (selectAfterDelete.find(r => r.id === targetRowAId)) {
+      throw new Error(`RLS Verification Failure on table '${tableName}': Failed to perform valid DELETE on owned row.`);
+    }
   }
 
-  setSessionSetting("app.current_tenant_id", "org-tenant-b-22");
-  const visibleToB = rlsQueryExecutor(mockBrandsTable);
-  if (visibleToB.length !== 1 || visibleToB[0].id !== "brand-2") {
-    throw new Error("RLS Test Failed: Tenant B should only see Tenant B's row");
-  }
-
+  // Clean context after tests
   clearSessionSetting("app.current_tenant_id");
-  const visibleToNone = rlsQueryExecutor(mockBrandsTable);
-  if (visibleToNone.length !== 0) {
-    throw new Error("RLS Test Failed: Session with empty tenant context must return zero rows");
-  }
 
   console.log("✅ Security Layer Tests Passed Successfully!");
 }
