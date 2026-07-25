@@ -240,5 +240,13 @@ CREATE TABLE IF NOT EXISTS prompts (
 CREATE INDEX IF NOT EXISTS idx_prompts_organization ON prompts(organization_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_brand ON prompts(brand_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_intent ON prompts(intent);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE prompts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON prompts;
+CREATE POLICY tenant_isolation_policy ON prompts
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

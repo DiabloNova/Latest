@@ -132,5 +132,13 @@ CREATE TABLE IF NOT EXISTS recommendations (
 CREATE INDEX IF NOT EXISTS idx_recommendations_organization ON recommendations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_recommendations_brand ON recommendations(brand_id);
 CREATE INDEX IF NOT EXISTS idx_recommendations_status ON recommendations(status);
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE recommendations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON recommendations;
+CREATE POLICY tenant_isolation_policy ON recommendations
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };

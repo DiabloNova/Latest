@@ -117,5 +117,13 @@ CREATE TABLE IF NOT EXISTS brands (
 
 CREATE INDEX IF NOT EXISTS idx_brands_organization ON brands(organization_id);
 CREATE INDEX IF NOT EXISTS idx_brands_deleted_at ON brands(deleted_at) WHERE deleted_at IS NULL;
+
+-- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
+ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_policy ON brands;
+CREATE POLICY tenant_isolation_policy ON brands
+  FOR ALL
+  USING (organization_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
   `
 };
