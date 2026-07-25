@@ -188,29 +188,62 @@ export class PostgresTenantRepository implements ITenantRepository {
     const sql = `SELECT * FROM tenants WHERE id = $1 AND deleted_at IS NULL LIMIT 1;`;
     const res = await this.getExecutor().query(sql, [id]);
 
+    if (res.rows && res.rows.length > 0) {
+      const row = res.rows[0];
+      return {
+        id: row.id as string,
+        name: row.name as string,
+        slug: row.slug as string,
+        status: row.status as "active" | "suspended" | "archived",
+        configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
+        quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
+        subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
+        audit: {
+          createdAt: row.created_at as string,
+          updatedAt: row.updated_at as string,
+          createdBy: row.created_by as string,
+          updatedBy: row.updated_by as string,
+          deletedAt: (row.deleted_at || undefined) as string | undefined,
+          version: row.version as number
+        }
+      };
+    }
+
     const tenant = PostgresTenantRepository.store.get(id);
     if (!tenant || tenant.audit.deletedAt) return null;
-
-    // Build entity from real row attributes
-    const row = (res.rows[0] || tenant) as QueryResultRow;
     return {
-      id: row.id as string,
-      name: row.name as string,
-      slug: row.slug as string,
-      status: row.status as "active" | "suspended" | "archived",
-      configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
-      quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
-      subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
-      audit: {
-        ...tenant.audit,
-        version: (row.version || tenant.audit.version) as number
-      }
+      ...tenant,
+      audit: { ...tenant.audit },
+      configuration: { ...tenant.configuration },
+      quota: { ...tenant.quota },
+      subscription: { ...tenant.subscription }
     };
   }
 
   public async findBySlug(slug: string): Promise<Tenant | null> {
     const sql = `SELECT * FROM tenants WHERE slug = $1 AND deleted_at IS NULL LIMIT 1;`;
-    await this.getExecutor().query(sql, [slug]);
+    const res = await this.getExecutor().query(sql, [slug]);
+
+    if (res.rows && res.rows.length > 0) {
+      const row = res.rows[0];
+      return {
+        id: row.id as string,
+        name: row.name as string,
+        slug: row.slug as string,
+        status: row.status as "active" | "suspended" | "archived",
+        configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
+        quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
+        subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
+        audit: {
+          createdAt: row.created_at as string,
+          updatedAt: row.updated_at as string,
+          createdBy: row.created_by as string,
+          updatedBy: row.updated_by as string,
+          deletedAt: (row.deleted_at || undefined) as string | undefined,
+          version: row.version as number
+        }
+      };
+    }
 
     for (const tenant of PostgresTenantRepository.store.values()) {
       if (tenant.slug === slug && !tenant.audit.deletedAt) {
@@ -230,7 +263,27 @@ export class PostgresTenantRepository implements ITenantRepository {
     const sql = status
       ? `SELECT * FROM tenants WHERE status = $1 AND deleted_at IS NULL;`
       : `SELECT * FROM tenants WHERE deleted_at IS NULL;`;
-    await this.getExecutor().query(sql, status ? [status] : []);
+    const res = await this.getExecutor().query(sql, status ? [status] : []);
+
+    if (res.rows && res.rows.length > 0) {
+      return res.rows.map(row => ({
+        id: row.id as string,
+        name: row.name as string,
+        slug: row.slug as string,
+        status: row.status as "active" | "suspended" | "archived",
+        configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
+        quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
+        subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
+        audit: {
+          createdAt: row.created_at as string,
+          updatedAt: row.updated_at as string,
+          createdBy: row.created_by as string,
+          updatedBy: row.updated_by as string,
+          deletedAt: (row.deleted_at || undefined) as string | undefined,
+          version: row.version as number
+        }
+      }));
+    }
 
     const list = Array.from(PostgresTenantRepository.store.values());
     const filtered = list.filter(t => !t.audit.deletedAt && (!status || t.status === status));
@@ -239,7 +292,35 @@ export class PostgresTenantRepository implements ITenantRepository {
 
   public async save(entity: Tenant): Promise<Tenant> {
     const execute = async () => {
-      const existing = PostgresTenantRepository.store.get(entity.id);
+      let existing: Tenant | null = null;
+      const findSql = `SELECT * FROM tenants WHERE id = $1 LIMIT 1;`;
+      const res = await this.getExecutor().query(findSql, [entity.id]);
+      if (res.rows && res.rows.length > 0) {
+        const row = res.rows[0];
+        existing = {
+          id: row.id as string,
+          name: row.name as string,
+          slug: row.slug as string,
+          status: row.status as "active" | "suspended" | "archived",
+          configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
+          quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
+          subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
+          audit: {
+            createdAt: row.created_at as string,
+            updatedAt: row.updated_at as string,
+            createdBy: row.created_by as string,
+            updatedBy: row.updated_by as string,
+            deletedAt: (row.deleted_at || undefined) as string | undefined,
+            version: row.version as number
+          }
+        };
+      } else {
+        const inMem = PostgresTenantRepository.store.get(entity.id);
+        if (inMem) {
+          existing = inMem;
+        }
+      }
+
       if (existing) {
         const versionDiff = entity.audit.version - existing.audit.version;
         if (versionDiff !== 0 && versionDiff !== 1) {
@@ -253,7 +334,7 @@ export class PostgresTenantRepository implements ITenantRepository {
           SET name = $1, slug = $2, status = $3, configuration = $4, quota = $5, subscription = $6, updated_at = $7, version = $8
           WHERE id = $9 AND version = $10;
         `;
-        await this.getExecutor().query(sql, [
+        const updateRes = await this.getExecutor().query(sql, [
           entity.name,
           entity.slug,
           entity.status,
@@ -265,6 +346,10 @@ export class PostgresTenantRepository implements ITenantRepository {
           entity.id,
           existing.audit.version
         ]);
+
+        if (updateRes && typeof updateRes.rowCount === "number" && updateRes.rowCount === 0 && res.rows && res.rows.length > 0) {
+          throw new OptimisticLockingError("Tenant", entity.audit.version, existing.audit.version);
+        }
 
         entity.audit.version = nextVersion;
         entity.audit.updatedAt = new Date().toISOString();
@@ -304,7 +389,35 @@ export class PostgresTenantRepository implements ITenantRepository {
 
   public async delete(id: string): Promise<void> {
     const execute = async () => {
-      const tenant = PostgresTenantRepository.store.get(id);
+      let tenant: Tenant | null = null;
+      const findSql = `SELECT * FROM tenants WHERE id = $1 LIMIT 1;`;
+      const res = await this.getExecutor().query(findSql, [id]);
+      if (res.rows && res.rows.length > 0) {
+        const row = res.rows[0];
+        tenant = {
+          id: row.id as string,
+          name: row.name as string,
+          slug: row.slug as string,
+          status: row.status as "active" | "suspended" | "archived",
+          configuration: typeof row.configuration === "string" ? JSON.parse(row.configuration) : row.configuration,
+          quota: typeof row.quota === "string" ? JSON.parse(row.quota) : row.quota,
+          subscription: typeof row.subscription === "string" ? JSON.parse(row.subscription) : row.subscription,
+          audit: {
+            createdAt: row.created_at as string,
+            updatedAt: row.updated_at as string,
+            createdBy: row.created_by as string,
+            updatedBy: row.updated_by as string,
+            deletedAt: (row.deleted_at || undefined) as string | undefined,
+            version: row.version as number
+          }
+        };
+      } else {
+        const inMem = PostgresTenantRepository.store.get(id);
+        if (inMem) {
+          tenant = inMem;
+        }
+      }
+
       if (tenant) {
         const sql = `UPDATE tenants SET deleted_at = $1, status = $2, version = $3 WHERE id = $4;`;
         const nextVersion = tenant.audit.version + 1;
