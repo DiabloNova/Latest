@@ -3,8 +3,10 @@
  * Enterprise InMemory Database and Repository Adapters
  */
 
+import { Pool } from "pg";
 import {
   Organization,
+  SubscriptionPlan,
   Brand,
   Entity,
   EntityRelationship,
@@ -341,24 +343,113 @@ function paginateArray<T>(items: T[], params?: QueryParams): PaginatedResult<T> 
  */
 
 export class OrganizationRepository implements IOrganizationRepository {
+  private pool: Pool;
+
+  constructor(pool?: Pool) {
+    const connectionString = process.env.DATABASE_URL || "postgresql://localhost:5432/aeo_saas";
+    this.pool = pool || new Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000
+    });
+  }
+
   public async findById(id: string): Promise<Organization | null> {
-    const org = db.organizations.get(id);
-    if (!org || org.audit.deletedAt) return null;
-    return org;
+    const sql = `
+      SELECT id, name, slug, plan, created_at, updated_at, created_by, updated_by, deleted_at, version
+      FROM organizations
+      WHERE id = $1 AND deleted_at IS NULL
+      LIMIT 1;
+    `;
+    console.debug(`[Postgres SQL] Executing Parameterised Query: "${sql}" with values: [${id}]`);
+
+    const res = await this.pool.query(sql, [id]);
+    if (!res.rowCount || res.rowCount === 0) return null;
+
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      plan: row.plan as SubscriptionPlan,
+      audit: {
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        createdBy: row.created_by,
+        updatedBy: row.updated_by,
+        deletedAt: row.deleted_at || undefined,
+        version: row.version
+      }
+    };
   }
 
   public async save(org: Organization): Promise<Organization> {
-    db.organizations.set(org.id, org);
+    const checkSql = `SELECT version FROM organizations WHERE id = $1 LIMIT 1;`;
+    console.debug(`[Postgres SQL] Executing Parameterised Query: "${checkSql}" with values: [${org.id}]`);
+
+    const checkRes = await this.pool.query(checkSql, [org.id]);
+    if (checkRes.rowCount && checkRes.rowCount > 0) {
+      const existingVersion = checkRes.rows[0].version;
+      const versionDiff = org.audit.version - existingVersion;
+      if (versionDiff !== 0 && versionDiff !== 1) {
+        throw new Error(`Optimistic Concurrency Lock Exception: version mismatch on Organization. Expected ${existingVersion}, got ${org.audit.version}`);
+      }
+
+      const nextVersion = versionDiff === 0 ? org.audit.version + 1 : org.audit.version;
+      const updateSql = `
+        UPDATE organizations
+        SET name = $1, slug = $2, plan = $3, updated_at = $4, updated_by = $5, version = $6
+        WHERE id = $7;
+      `;
+      console.debug(`[Postgres SQL] Executing Parameterised Query: "${updateSql}" with values: [${org.name}, ${org.slug}, ${org.plan}, ...]`);
+      await this.pool.query(updateSql, [
+        org.name,
+        org.slug,
+        org.plan,
+        new Date().toISOString(),
+        org.audit.updatedBy,
+        nextVersion,
+        org.id
+      ]);
+      org.audit.version = nextVersion;
+      org.audit.updatedAt = new Date().toISOString();
+    } else {
+      const insertSql = `
+        INSERT INTO organizations (id, name, slug, plan, created_at, updated_at, created_by, updated_by, version)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+      `;
+      console.debug(`[Postgres SQL] Executing Parameterised Query: "${insertSql}" with values: [${org.id}, ${org.name}, ${org.slug}, ...]`);
+      org.audit.version = 1;
+      org.audit.createdAt = new Date().toISOString();
+      org.audit.updatedAt = new Date().toISOString();
+
+      await this.pool.query(insertSql, [
+        org.id,
+        org.name,
+        org.slug,
+        org.plan,
+        org.audit.createdAt,
+        org.audit.updatedAt,
+        org.audit.createdBy,
+        org.audit.updatedBy,
+        org.audit.version
+      ]);
+    }
+
     return org;
   }
 
   public async deleteSoft(id: string, deletedBy: string): Promise<boolean> {
-    const org = db.organizations.get(id);
-    if (!org) return false;
-    org.audit.deletedAt = new Date().toISOString();
-    org.audit.updatedBy = deletedBy;
-    org.audit.updatedAt = new Date().toISOString();
-    return true;
+    const sql = `
+      UPDATE organizations
+      SET deleted_at = $1, updated_by = $2, updated_at = $3
+      WHERE id = $4 AND deleted_at IS NULL;
+    `;
+    console.debug(`[Postgres SQL] Executing Parameterised Query: "${sql}" with values: [${deletedBy}, ${id}]`);
+
+    const res = await this.pool.query(sql, [new Date().toISOString(), deletedBy, new Date().toISOString(), id]);
+    return (res.rowCount !== null && res.rowCount > 0);
   }
 }
 
