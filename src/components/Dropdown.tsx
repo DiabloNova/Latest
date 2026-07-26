@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Button } from "./Button";
 
 export interface DropdownItem {
   label: string;
@@ -54,14 +53,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
       {isOpen && (
         <div
           className={`absolute ${
-            align === "right" ? "right-0" : "left-0"
+            align === "right" ? "end-0" : "start-0"
           } mt-2 w-56 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)] shadow-[var(--shadow-lg)] ring-1 ring-black/5 focus:outline-none z-50 overflow-hidden`}
         >
           <div className="py-1" role="menu" aria-orientation="vertical">
             {items.map((item, idx) => (
               <button
                 key={idx}
-                className="w-full text-left px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--card)] hover:text-[var(--text-primary)] transition-colors duration-100 flex items-center justify-between"
+                className="w-full text-left px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--card)] hover:text-[var(--text-primary)] transition-colors duration-100 flex items-center justify-between rtl:text-right"
                 role="menuitem"
                 onClick={() => handleItemClick(item)}
               >

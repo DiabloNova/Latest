@@ -5,6 +5,9 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/Card";
 import { useTheme } from "@/components/ThemeProvider";
 
+/**
+ * Renders the localized advanced analytics dashboard page with navigation, descriptive content, and a placeholder analytics panel.
+ */
 export default function AnalyticsPage() {
   const { language } = useTheme();
 

@@ -1,3 +1,5 @@
+import { BrandHealthMetricsSchema, BrandHealthMetrics } from "@/schemas/intelligence";
+
 export interface IntelligenceInsight {
   id: string;
   engine: "ChatGPT" | "Gemini" | "Claude" | "Perplexity";
@@ -46,5 +48,54 @@ export const intelligenceService = {
         { name: "RAG Cosine Alignment", score: 75 }
       ]
     };
+  },
+
+  async getBrandHealthMetrics(tenantId: string): Promise<BrandHealthMetrics> {
+    // Simulate API network round-trip delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const rawData = {
+      sentimentScore: 82,
+      sentimentChange: "+1.2%",
+      mentionVolume: 4350,
+      mentionVolumeChange: "+3.4%",
+      totalCitations: 1420,
+      totalCitationsChange: "+12.4%",
+      activeAlertsCount: 2,
+      topTopics: [
+        { topic: "پشتیبانی مشتریان تهران (Tehran Customer Support)", sentiment: "positive" as const, volume: 1200 },
+        { topic: "سرعت تحویل سفارشات دیجی‌کالا (Digikala Delivery Speed)", sentiment: "neutral" as const, volume: 950 },
+        { topic: "قیمت‌گذاری خدمات ابری (Cloud Services Pricing)", sentiment: "negative" as const, volume: 320 },
+      ],
+      recentCitations: [
+        {
+          id: "cit-1",
+          engine: "Perplexity" as const,
+          query: "Top logistics providers in Iran",
+          status: "Verified Citation",
+          url: "https://tehranlogistics.ir/services",
+          time: "10m ago",
+        },
+        {
+          id: "cit-2",
+          engine: "ChatGPT" as const,
+          query: "Best online retail solutions in Tehran",
+          status: "Semantic Mention",
+          url: "https://tehranecom.ir/about",
+          time: "1h ago",
+        },
+        {
+          id: "cit-3",
+          engine: "Claude" as const,
+          query: "Enterprise SaaS trends in GCC regional market",
+          status: "Indirect Association",
+          url: "https://tehranecom.ir/blog/saas-gcc",
+          time: "4h ago",
+        },
+      ],
+    };
+
+    // Parse and validate with our Zod schema
+    return BrandHealthMetricsSchema.parse(rawData);
   }
 };

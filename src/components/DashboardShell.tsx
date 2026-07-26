@@ -2,11 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { Dropdown } from "@/components/Dropdown";
 import { Button } from "@/components/Button";
-import { Badge } from "@/components/Badge";
 import {
   LayoutDashboard,
   BrainCircuit,
@@ -18,9 +17,6 @@ import {
   Sun,
   Moon,
   Globe,
-  User,
-  Settings,
-  LogOut,
   ChevronRight,
   ChevronLeft
 } from "lucide-react";
@@ -31,6 +27,7 @@ interface DashboardShellProps {
 
 export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme, direction, language, setLanguage } = useTheme();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -58,11 +55,28 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   ];
 
   const toggleLanguage = () => {
-    setLanguage(language === "en" ? "fa" : "en");
+    const newLang = language === "en" ? "fa" : "en";
+    setLanguage(newLang);
+
+    if (pathname) {
+      const segments = pathname.split("/");
+      // segments[0] is "", segments[1] is the locale ("en" or "fa")
+      if (segments[1] === "en" || segments[1] === "fa") {
+        segments[1] = newLang;
+        router.push(segments.join("/"));
+      } else {
+        router.push(`/${newLang}${pathname}`);
+      }
+    }
   };
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  // Helper to prepend the active locale to a navigation link
+  const getLocalizedHref = (href: string) => {
+    return `/${language}${href === "/" ? "" : href}`;
   };
 
   return (
@@ -97,7 +111,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               trigger={
                 <Button variant="outline" size="sm" className="flex items-center gap-2 px-3 py-1 bg-[var(--card)] border-[var(--border)] font-semibold text-xs">
                   <span>{activeWorkspace}</span>
-                  <span className="text-[var(--text-muted)]">▼</span>
+                  <span className="text-[var(--text-muted)] text-[8px]">▼</span>
                 </Button>
               }
               items={workspaceDropdownItems}
@@ -151,11 +165,12 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
           <nav className="flex-1 py-4 px-2 space-y-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+              const localizedHref = getLocalizedHref(item.href);
+              const isActive = pathname === localizedHref || (item.href !== "/dashboard" && pathname?.startsWith(localizedHref));
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={localizedHref}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 ${
                     isActive
                       ? "bg-[var(--color-primary-700)] text-white font-medium shadow-sm"
@@ -193,7 +208,9 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-1 hover:bg-[var(--card)]"
             >
-              {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              <span className="rtl:-scale-x-100 inline-block">
+                {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              </span>
             </Button>
           </div>
         </aside>
@@ -208,7 +225,11 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
             />
 
             {/* Drawer Content */}
-            <aside className="relative w-64 max-w-sm bg-[var(--background)] h-full flex flex-col border-e border-[var(--border)] animate-in slide-in-from-left duration-200 z-10">
+            <aside
+              className={`relative w-64 max-w-sm bg-[var(--background)] h-full flex flex-col border-e border-[var(--border)] animate-in ${
+                direction === "rtl" ? "slide-in-from-right" : "slide-in-from-left"
+              } duration-200 z-10`}
+            >
               <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border)]">
                 <span className="font-bold text-lg">{language === "fa" ? "منوی اصلی" : "Main Menu"}</span>
                 <Button variant="ghost" size="sm" onClick={() => setMobileSidebarOpen(false)} className="p-1">
@@ -222,7 +243,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
                   trigger={
                     <Button variant="outline" size="sm" className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[var(--card)]">
                       <span>{activeWorkspace}</span>
-                      <span className="text-[var(--text-muted)]">▼</span>
+                      <span className="text-[var(--text-muted)] text-[8px]">▼</span>
                     </Button>
                   }
                   items={workspaceDropdownItems}
@@ -232,11 +253,12 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               <nav className="flex-1 py-4 px-2 space-y-1">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                  const localizedHref = getLocalizedHref(item.href);
+                  const isActive = pathname === localizedHref || (item.href !== "/dashboard" && pathname?.startsWith(localizedHref));
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={localizedHref}
                       onClick={() => setMobileSidebarOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 ${
                         isActive

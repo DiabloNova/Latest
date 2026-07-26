@@ -10,6 +10,9 @@ import {
   RefreshCw
 } from "lucide-react";
 
+/**
+ * Renders a localized dashboard for evaluating brand representation across AI engines.
+ */
 export default function IntelligencePage() {
   const { language } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);

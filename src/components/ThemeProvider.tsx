@@ -16,10 +16,22 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+/**
+ * Provides theme, language, and text-direction settings to descendant components.
+ *
+ * @param initialLanguage - The language used when no persisted language is available.
+ * @returns A context provider containing theme, language, and direction settings.
+ */
+export function ThemeProvider({
+  children,
+  initialLanguage = "fa"
+}: {
+  children: React.ReactNode;
+  initialLanguage?: Language;
+}) {
   const [theme, setThemeState] = useState<Theme>("light");
-  const [language, setLanguageState] = useState<Language>("en");
-  const [direction, setDirection] = useState<Direction>("ltr");
+  const [language, setLanguageState] = useState<Language>(initialLanguage);
+  const [direction, setDirection] = useState<Direction>(initialLanguage === "fa" ? "rtl" : "ltr");
 
   const setTheme = useCallback((newTheme: Theme) => {
     const root = window.document.documentElement;
@@ -51,24 +63,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.classList.add(initialTheme);
 
     const storedLang = localStorage.getItem("language") as Language | null;
-    let initialLang: Language = "en";
-    let initialDir: Direction = "ltr";
+    let currentLang = initialLanguage;
+    let currentDir: Direction = initialLanguage === "fa" ? "rtl" : "ltr";
 
     if (storedLang) {
-      initialLang = storedLang;
-      initialDir = storedLang === "fa" ? "rtl" : "ltr";
-      root.setAttribute("lang", storedLang);
-      root.setAttribute("dir", initialDir);
+      currentLang = storedLang;
+      currentDir = storedLang === "fa" ? "rtl" : "ltr";
     }
+
+    root.setAttribute("lang", currentLang);
+    root.setAttribute("dir", currentDir);
 
     const timer = setTimeout(() => {
       setThemeState(initialTheme);
-      setLanguageState(initialLang);
-      setDirection(initialDir);
+      setLanguageState(currentLang);
+      setDirection(currentDir);
     }, 0);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [initialLanguage]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, direction, language, setLanguage }}>
