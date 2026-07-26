@@ -10,6 +10,8 @@ import { testDomain } from "./domain.test";
 import { testSecurity } from "./security.test";
 import { testApplication } from "./application.test";
 import { testEvents } from "./events.test";
+import { TenantContextManager } from "../../../src/core/database/tenant-context";
+import { testTenantPipeline } from "./tenant-pipeline.test";
 
 // Global Pool.query mock to intercept queries for local offline TSX run checks
 (Pool.prototype as any).query = async function(sql: string, params: unknown[] = []) {
@@ -102,8 +104,20 @@ async function main() {
 
   try {
     testDomain();
-    await testSecurity();
-    await testApplication();
+
+    // Run Security tests under an explicit System Context
+    await TenantContextManager.runWithSystemContext("user-admin", "req-admin-01", async () => {
+      await testSecurity();
+    });
+
+    // Run Application CQRS tests under an explicit Tenant Context
+    await TenantContextManager.runWithTenantContext("org-enterprise-01", "user-test-01", "req-test-01", async () => {
+      await testApplication();
+    });
+
+    // Run custom Tenant Pipeline Context tests
+    await testTenantPipeline();
+
     testEvents();
 
     // Allow asynchronous event bus execution to complete before final status log
