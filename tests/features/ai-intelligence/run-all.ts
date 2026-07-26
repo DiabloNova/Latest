@@ -12,10 +12,78 @@ import { testApplication } from "./application.test";
 import { testEvents } from "./events.test";
 import { TenantContextManager } from "../../../src/core/database/tenant-context";
 import { testTenantPipeline } from "./tenant-pipeline.test";
+import { testVectorStore } from "./vector-store.test";
+
+const mockEmbeddingsStore: any[] = [];
+
+function calculateCosineDistance(a: number[], b: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  const length = Math.min(a.length, b.length);
+  for (let i = 0; i < length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 1;
+  return 1 - (dotProduct / (Math.sqrt(normA) * Math.sqrt(normB)));
+}
 
 // Global Pool.query mock to intercept queries for local offline TSX run checks
 (Pool.prototype as any).query = async function(sql: string, params: unknown[] = []) {
   const normalizedSql = sql.toLowerCase();
+
+  // Intercept document_embeddings insert queries
+  if (normalizedSql.includes("insert into document_embeddings")) {
+    const [id, tenantId, contentChunk, metadataJson, embeddingStr, createdAt] = params as any[];
+    // Parse embedding string e.g. "[1.2, 2.3]"
+    const embedding = JSON.parse(embeddingStr);
+    const metadata = typeof metadataJson === "string" ? JSON.parse(metadataJson) : metadataJson;
+
+    const newRecord = {
+      id,
+      tenant_id: tenantId,
+      content_chunk: contentChunk,
+      metadata,
+      embedding,
+      created_at: createdAt
+    };
+    mockEmbeddingsStore.push(newRecord);
+
+    return {
+      rowCount: 1,
+      rows: [newRecord]
+    };
+  }
+
+  // Intercept document_embeddings similarity search queries
+  if (normalizedSql.includes("select") && normalizedSql.includes("document_embeddings")) {
+    const [tenantId, queryEmbeddingStr, limit] = params as any[];
+    const queryEmbedding = JSON.parse(queryEmbeddingStr);
+
+    // Filter by tenant context and compute simulated cosine distance
+    const matched = mockEmbeddingsStore
+      .filter(record => record.tenant_id === tenantId)
+      .map(record => {
+        const distance = calculateCosineDistance(record.embedding, queryEmbedding);
+        return {
+          id: record.id,
+          tenant_id: record.tenant_id,
+          content_chunk: record.content_chunk,
+          metadata: record.metadata,
+          distance,
+          created_at: record.created_at
+        };
+      })
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit);
+
+    return {
+      rowCount: matched.length,
+      rows: matched
+    };
+  }
 
   if (normalizedSql.includes("select version from organizations")) {
     const orgId = params[0] as string;
@@ -117,6 +185,9 @@ async function main() {
 
     // Run custom Tenant Pipeline Context tests
     await testTenantPipeline();
+
+    // Run Vector Store and Persian KG Foundation tests
+    await testVectorStore();
 
     testEvents();
 

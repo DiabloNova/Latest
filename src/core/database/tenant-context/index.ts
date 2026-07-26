@@ -29,7 +29,10 @@ export const TENANT_SCOPED_TABLES = Object.freeze([
   "visibility_scores",
   "recommendations",
   "tenant_quotas",
-  "tenant_subscriptions"
+  "tenant_subscriptions",
+  "document_embeddings",
+  "kg_entities",
+  "kg_relationships"
 ]);
 
 /**

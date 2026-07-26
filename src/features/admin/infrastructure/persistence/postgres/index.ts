@@ -181,13 +181,20 @@ export class PostgresClient {
 class MockPoolClient {
   public async query(sql: string, params: unknown[] = []): Promise<QueryResult<QueryResultRow>> {
     console.debug(`[Postgres Transacted SQL] Executing Parameterised Query: "${sql}" with values: [${params.join(", ")}]`);
-    return {
-      rows: [] as QueryResultRow[],
-      command: "BEGIN",
-      rowCount: 0,
-      oid: 0,
-      fields: []
-    };
+    try {
+      return await PostgresClient.getInstance().getPool().query(sql, params);
+    } catch (err: any) {
+      if (err.code === "ECONNREFUSED" || err.message?.includes("connect ECONNREFUSED") || err.message?.includes("Database connection failed")) {
+        return {
+          rows: [] as QueryResultRow[],
+          command: "BEGIN",
+          rowCount: 0,
+          oid: 0,
+          fields: []
+        };
+      }
+      throw err;
+    }
   }
   public release(): void {}
 }

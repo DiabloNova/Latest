@@ -300,7 +300,7 @@ export async function testSecurity() {
     }
   }
 
-  // List of all 12 tenant-scoped tables with their respective partition columns
+  // List of all 15 tenant-scoped tables with their respective partition columns
   const tablesToVerify = [
     { tableName: "organizations", tenantColumn: "id" },
     { tableName: "brands", tenantColumn: "organizationId" },
@@ -313,7 +313,10 @@ export async function testSecurity() {
     { tableName: "visibility_scores", tenantColumn: "organizationId" },
     { tableName: "recommendations", tenantColumn: "organizationId" },
     { tableName: "tenant_quotas", tenantColumn: "tenantId" },
-    { tableName: "tenant_subscriptions", tenantColumn: "tenantId" }
+    { tableName: "tenant_subscriptions", tenantColumn: "tenantId" },
+    { tableName: "document_embeddings", tenantColumn: "tenantId" },
+    { tableName: "kg_entities", tenantColumn: "tenantId" },
+    { tableName: "kg_relationships", tenantColumn: "tenantId" }
   ];
 
   for (const { tableName, tenantColumn } of tablesToVerify) {
