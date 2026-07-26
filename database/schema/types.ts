@@ -1,6 +1,6 @@
 export interface ColumnDefinition {
   name: string;
-  type: "UUID" | "TEXT" | "INTEGER" | "DOUBLE PRECISION" | "TIMESTAMP" | "TEXT[]" | "BOOLEAN";
+  type: "UUID" | "TEXT" | "INTEGER" | "DOUBLE PRECISION" | "TIMESTAMP" | "TEXT[]" | "BOOLEAN" | "JSONB" | "VECTOR";
   nullable: boolean;
   primaryKey?: boolean;
   unique?: boolean;

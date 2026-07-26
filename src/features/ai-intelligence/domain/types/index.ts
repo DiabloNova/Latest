@@ -221,3 +221,45 @@ export interface Recommendation {
   status: RecommendationStatus;
   audit: AuditMetadata;
 }
+
+/**
+ * Entity: DocumentEmbedding
+ * Represents stored text chunks along with dense high-dimensional semantic vector embeddings.
+ */
+export interface DocumentEmbedding {
+  id: string;
+  tenantId: string; // strict multi-tenant partition key
+  contentChunk: string;
+  metadata: Record<string, unknown>;
+  embedding: number[];
+  createdAt: Date | string;
+}
+
+/**
+ * Entity: KgEntity
+ * Represents a semantic entity inside the Optimus AI Persian Knowledge Graph.
+ */
+export interface KgEntity {
+  id: string;
+  tenantId: string; // strict multi-tenant partition key
+  name: string;
+  type: string;
+  properties: Record<string, unknown>;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/**
+ * Entity: KgRelationship
+ * Represents a directed typed semantic relation link mapping between two KG nodes.
+ */
+export interface KgRelationship {
+  id: string;
+  tenantId: string; // strict multi-tenant partition key
+  sourceEntityId: string;
+  targetEntityId: string;
+  relationshipType: string;
+  properties: Record<string, unknown>;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
