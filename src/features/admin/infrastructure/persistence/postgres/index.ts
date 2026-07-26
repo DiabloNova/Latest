@@ -3,6 +3,7 @@
  * Implements real SQL queries, connection leasing, transactions, optimistic concurrency, and soft delete.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 import {
   ITenantRepository,
@@ -13,6 +14,7 @@ import {
 } from "../../../domain/repositories";
 import { Tenant, AdminUser, FeatureFlag, AuditRecord, AIProviderConfiguration } from "../../../domain/types";
 import { UnitOfWork } from "../uow";
+import { TenantContextManager, isQueryTenantScoped, TenantContextViolationException } from "../../../../../core/database/tenant-context";
 
 export class OptimisticLockingError extends Error {
   constructor(entityName: string, expectedVersion: number, actualVersion: number) {
@@ -56,13 +58,36 @@ export class PostgresClient {
    * Safe connection leasing from Pool
    */
   public async connectClient(): Promise<PoolClient> {
+    let client: any;
     try {
-      return await this.pool.connect();
+      client = await this.pool.connect();
     } catch {
       // Fallback driver for local offline environments (simulates PoolClient query bindings)
       console.warn("[Postgres Telemetry] Database connection failed. Initialising offline simulation driver.");
-      return new MockPoolClient() as unknown as PoolClient;
+      client = new MockPoolClient();
     }
+
+    // Wrap the leased client using Object.create to preserve the prototype chain, event emitters, and other methods of PoolClient
+    const wrappedClient = Object.create(client);
+    wrappedClient.query = async (sql: string, params: unknown[] = []) => {
+      if (isQueryTenantScoped(sql)) {
+        TenantContextManager.getRequiredTenantId();
+        const activeDbClient = TenantContextManager.getDbClient();
+        if (!activeDbClient) {
+          throw new TenantContextViolationException(
+            "Tenant Context Violation: Tenant-scoped query must execute within an active tenant transaction."
+          );
+        }
+      }
+      return client.query(sql, params);
+    };
+    wrappedClient.release = () => {
+      if (typeof client.release === "function") {
+        client.release();
+      }
+    };
+
+    return wrappedClient as unknown as PoolClient;
   }
 
   /**
@@ -117,6 +142,24 @@ export class PostgresClient {
    * Parameterised query execution
    */
   public async query<T extends QueryResultRow = QueryResultRow>(sql: string, params: unknown[] = []): Promise<QueryResult<T>> {
+    const isTenantQuery = isQueryTenantScoped(sql);
+
+    if (isTenantQuery) {
+      TenantContextManager.getRequiredTenantId();
+      const activeDbClient = TenantContextManager.getDbClient();
+      if (!activeDbClient) {
+        throw new TenantContextViolationException(
+          "Tenant Context Violation: Tenant-scoped query must execute within an active tenant transaction."
+        );
+      }
+      return activeDbClient.query(sql, params);
+    }
+
+    const activeDbClient = TenantContextManager.getDbClient();
+    if (activeDbClient) {
+      return activeDbClient.query(sql, params);
+    }
+
     console.debug(`[Postgres SQL] Executing Parameterised Query: "${sql}" with values: [${params.join(", ")}]`);
     try {
       return await this.pool.query(sql, params);

@@ -4,6 +4,8 @@
  */
 
 import { Pool } from "pg";
+import { TenantContextManager, TenantContextViolationException } from "../../../core/database/tenant-context";
+import { PostgresClient } from "../../admin/infrastructure/persistence/postgres";
 import {
   Organization,
   SubscriptionPlan,
@@ -41,6 +43,18 @@ function createMockAudit(createdBy = "system"): AuditMetadata {
     updatedBy: createdBy,
     version: 1
   };
+}
+
+function enforceTenantContext(organizationId: string): void {
+  if (TenantContextManager.isSystemMode()) {
+    return;
+  }
+  const activeTenantId = TenantContextManager.getRequiredTenantId();
+  if (activeTenantId !== organizationId) {
+    throw new TenantContextViolationException(
+      `Tenant Context Violation: Access Denied. Cross-tenant operation blocked. Target organization ${organizationId} does not match active tenant ${activeTenantId}.`
+    );
+  }
 }
 
 class InMemoryDatabase {
@@ -343,19 +357,14 @@ function paginateArray<T>(items: T[], params?: QueryParams): PaginatedResult<T> 
  */
 
 export class OrganizationRepository implements IOrganizationRepository {
-  private pool: Pool;
+  private pg: PostgresClient;
 
-  constructor(pool?: Pool) {
-    const connectionString = process.env.DATABASE_URL || "postgresql://localhost:5432/aeo_saas";
-    this.pool = pool || new Pool({
-      connectionString,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000
-    });
+  constructor(pg?: PostgresClient) {
+    this.pg = pg || PostgresClient.getInstance();
   }
 
   public async findById(id: string): Promise<Organization | null> {
+    enforceTenantContext(id);
     const sql = `
       SELECT id, name, slug, plan, created_at, updated_at, created_by, updated_by, deleted_at, version
       FROM organizations
@@ -364,7 +373,7 @@ export class OrganizationRepository implements IOrganizationRepository {
     `;
     console.debug(`[Postgres SQL] Executing Parameterised Query: "${sql}" with values: [${id}]`);
 
-    const res = await this.pool.query(sql, [id]);
+    const res = await this.pg.query(sql, [id]);
     if (!res.rowCount || res.rowCount === 0) return null;
 
     const row = res.rows[0];
@@ -385,10 +394,11 @@ export class OrganizationRepository implements IOrganizationRepository {
   }
 
   public async save(org: Organization): Promise<Organization> {
+    enforceTenantContext(org.id);
     const checkSql = `SELECT version FROM organizations WHERE id = $1 LIMIT 1;`;
     console.debug(`[Postgres SQL] Executing Parameterised Query: "${checkSql}" with values: [${org.id}]`);
 
-    const checkRes = await this.pool.query(checkSql, [org.id]);
+    const checkRes = await this.pg.query(checkSql, [org.id]);
     if (checkRes.rowCount && checkRes.rowCount > 0) {
       const existingVersion = checkRes.rows[0].version;
       const versionDiff = org.audit.version - existingVersion;
@@ -403,7 +413,7 @@ export class OrganizationRepository implements IOrganizationRepository {
         WHERE id = $7;
       `;
       console.debug(`[Postgres SQL] Executing Parameterised Query: "${updateSql}" with values: [${org.name}, ${org.slug}, ${org.plan}, ...]`);
-      await this.pool.query(updateSql, [
+      await this.pg.query(updateSql, [
         org.name,
         org.slug,
         org.plan,
@@ -424,7 +434,7 @@ export class OrganizationRepository implements IOrganizationRepository {
       org.audit.createdAt = new Date().toISOString();
       org.audit.updatedAt = new Date().toISOString();
 
-      await this.pool.query(insertSql, [
+      await this.pg.query(insertSql, [
         org.id,
         org.name,
         org.slug,
@@ -441,6 +451,7 @@ export class OrganizationRepository implements IOrganizationRepository {
   }
 
   public async deleteSoft(id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(id);
     const sql = `
       UPDATE organizations
       SET deleted_at = $1, updated_by = $2, updated_at = $3
@@ -448,13 +459,14 @@ export class OrganizationRepository implements IOrganizationRepository {
     `;
     console.debug(`[Postgres SQL] Executing Parameterised Query: "${sql}" with values: [${deletedBy}, ${id}]`);
 
-    const res = await this.pool.query(sql, [new Date().toISOString(), deletedBy, new Date().toISOString(), id]);
+    const res = await this.pg.query(sql, [new Date().toISOString(), deletedBy, new Date().toISOString(), id]);
     return (res.rowCount !== null && res.rowCount > 0);
   }
 }
 
 export class BrandRepository implements IBrandRepository {
   public async findById(organizationId: string, id: string): Promise<Brand | null> {
+    enforceTenantContext(organizationId);
     const brand = db.brands.get(id);
     if (!brand || brand.organizationId !== organizationId || brand.audit.deletedAt) {
       return null;
@@ -463,6 +475,7 @@ export class BrandRepository implements IBrandRepository {
   }
 
   public async findByOrganizationId(organizationId: string, params?: QueryParams): Promise<PaginatedResult<Brand>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.brands.values()).filter(
       b => b.organizationId === organizationId && (params?.includeDeleted || !b.audit.deletedAt)
     );
@@ -470,6 +483,7 @@ export class BrandRepository implements IBrandRepository {
   }
 
   public async save(brand: Brand): Promise<Brand> {
+    enforceTenantContext(brand.organizationId);
     const existing = db.brands.get(brand.id);
     if (existing && existing.organizationId !== brand.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Brand.");
@@ -479,6 +493,7 @@ export class BrandRepository implements IBrandRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const brand = db.brands.get(id);
     if (!brand || brand.organizationId !== organizationId) return false;
     brand.audit.deletedAt = new Date().toISOString();
@@ -490,6 +505,7 @@ export class BrandRepository implements IBrandRepository {
 
 export class EntityRepository implements IEntityRepository {
   public async findById(organizationId: string, id: string): Promise<Entity | null> {
+    enforceTenantContext(organizationId);
     const entity = db.entities.get(id);
     if (!entity || entity.organizationId !== organizationId || entity.audit.deletedAt) {
       return null;
@@ -498,6 +514,7 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Entity>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.entities.values()).filter(
       e => e.organizationId === organizationId && e.brandId === brandId && (params?.includeDeleted || !e.audit.deletedAt)
     );
@@ -505,6 +522,7 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async save(entity: Entity): Promise<Entity> {
+    enforceTenantContext(entity.organizationId);
     const existing = db.entities.get(entity.id);
     if (existing && existing.organizationId !== entity.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Entity.");
@@ -514,6 +532,7 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const entity = db.entities.get(id);
     if (!entity || entity.organizationId !== organizationId) return false;
     entity.audit.deletedAt = new Date().toISOString();
@@ -523,12 +542,14 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async getRelationships(organizationId: string): Promise<EntityRelationship[]> {
+    enforceTenantContext(organizationId);
     return db.relationships.filter(
       r => r.organizationId === organizationId && !r.audit.deletedAt
     );
   }
 
   public async saveRelationship(relationship: EntityRelationship): Promise<EntityRelationship> {
+    enforceTenantContext(relationship.organizationId);
     const existing = db.relationships.find(
       r => r.sourceEntityId === relationship.sourceEntityId &&
            r.targetEntityId === relationship.targetEntityId &&
@@ -547,6 +568,7 @@ export class EntityRepository implements IEntityRepository {
   }
 
   public async deleteRelationship(organizationId: string, sourceId: string, targetId: string, type: RelationshipType): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const origLength = db.relationships.length;
     db.relationships = db.relationships.filter(
       r => !(r.organizationId === organizationId &&
@@ -589,6 +611,7 @@ export class AIEngineRepository implements IAIEngineRepository {
 
 export class PromptRepository implements IPromptRepository {
   public async findById(organizationId: string, id: string): Promise<Prompt | null> {
+    enforceTenantContext(organizationId);
     const prompt = db.prompts.get(id);
     if (!prompt || prompt.organizationId !== organizationId || prompt.audit.deletedAt) {
       return null;
@@ -597,6 +620,7 @@ export class PromptRepository implements IPromptRepository {
   }
 
   public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Prompt>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.prompts.values()).filter(
       p => p.organizationId === organizationId && p.brandId === brandId && (params?.includeDeleted || !p.audit.deletedAt)
     );
@@ -604,6 +628,7 @@ export class PromptRepository implements IPromptRepository {
   }
 
   public async save(prompt: Prompt): Promise<Prompt> {
+    enforceTenantContext(prompt.organizationId);
     const existing = db.prompts.get(prompt.id);
     if (existing && existing.organizationId !== prompt.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Prompt.");
@@ -613,6 +638,7 @@ export class PromptRepository implements IPromptRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const prompt = db.prompts.get(id);
     if (!prompt || prompt.organizationId !== organizationId) return false;
     prompt.audit.deletedAt = new Date().toISOString();
@@ -624,6 +650,7 @@ export class PromptRepository implements IPromptRepository {
 
 export class ObservationRepository implements IObservationRepository {
   public async findById(organizationId: string, id: string): Promise<AIObservation | null> {
+    enforceTenantContext(organizationId);
     const obs = db.observations.get(id);
     if (!obs || obs.organizationId !== organizationId || obs.audit.deletedAt) {
       return null;
@@ -632,6 +659,7 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async findByPromptId(organizationId: string, promptId: string, params?: QueryParams): Promise<PaginatedResult<AIObservation>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.observations.values()).filter(
       o => o.organizationId === organizationId && o.promptId === promptId && (params?.includeDeleted || !o.audit.deletedAt)
     );
@@ -639,6 +667,7 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async findByEngineId(organizationId: string, engineId: string, params?: QueryParams): Promise<PaginatedResult<AIObservation>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.observations.values()).filter(
       o => o.organizationId === organizationId && o.engineId === engineId && (params?.includeDeleted || !o.audit.deletedAt)
     );
@@ -646,6 +675,7 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async save(observation: AIObservation): Promise<AIObservation> {
+    enforceTenantContext(observation.organizationId);
     const existing = db.observations.get(observation.id);
     if (existing && existing.organizationId !== observation.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Observation.");
@@ -655,6 +685,7 @@ export class ObservationRepository implements IObservationRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const obs = db.observations.get(id);
     if (!obs || obs.organizationId !== organizationId) return false;
     obs.audit.deletedAt = new Date().toISOString();
@@ -665,12 +696,14 @@ export class ObservationRepository implements IObservationRepository {
 
   // Mentions
   public async findMentionsByObservationId(organizationId: string, observationId: string): Promise<BrandMention[]> {
+    enforceTenantContext(organizationId);
     return Array.from(db.mentions.values()).filter(
       m => m.organizationId === organizationId && m.observationId === observationId && !m.audit.deletedAt
     );
   }
 
   public async saveMention(mention: BrandMention): Promise<BrandMention> {
+    enforceTenantContext(mention.organizationId);
     const existing = db.mentions.get(mention.id);
     if (existing && existing.organizationId !== mention.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Mention.");
@@ -681,12 +714,14 @@ export class ObservationRepository implements IObservationRepository {
 
   // Citations
   public async findCitationsByObservationId(organizationId: string, observationId: string): Promise<Citation[]> {
+    enforceTenantContext(organizationId);
     return Array.from(db.citations.values()).filter(
       c => c.organizationId === organizationId && c.observationId === observationId && !c.audit.deletedAt
     );
   }
 
   public async saveCitation(citation: Citation): Promise<Citation> {
+    enforceTenantContext(citation.organizationId);
     const existing = db.citations.get(citation.id);
     if (existing && existing.organizationId !== citation.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Citation.");
@@ -698,6 +733,7 @@ export class ObservationRepository implements IObservationRepository {
 
 export class VisibilityScoreRepository implements IVisibilityScoreRepository {
   public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<VisibilityScore>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.visibilityScores.values()).filter(
       v => v.organizationId === organizationId && v.brandId === brandId && (params?.includeDeleted || !v.audit.deletedAt)
     );
@@ -705,6 +741,7 @@ export class VisibilityScoreRepository implements IVisibilityScoreRepository {
   }
 
   public async save(score: VisibilityScore): Promise<VisibilityScore> {
+    enforceTenantContext(score.organizationId);
     const existing = db.visibilityScores.get(score.id);
     if (existing && existing.organizationId !== score.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing VisibilityScore.");
@@ -714,6 +751,7 @@ export class VisibilityScoreRepository implements IVisibilityScoreRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const score = db.visibilityScores.get(id);
     if (!score || score.organizationId !== organizationId) return false;
     score.audit.deletedAt = new Date().toISOString();
@@ -725,6 +763,7 @@ export class VisibilityScoreRepository implements IVisibilityScoreRepository {
 
 export class RecommendationRepository implements IRecommendationRepository {
   public async findByBrandId(organizationId: string, brandId: string, params?: QueryParams): Promise<PaginatedResult<Recommendation>> {
+    enforceTenantContext(organizationId);
     const list = Array.from(db.recommendations.values()).filter(
       r => r.organizationId === organizationId && r.brandId === brandId && (params?.includeDeleted || !r.audit.deletedAt)
     );
@@ -732,6 +771,7 @@ export class RecommendationRepository implements IRecommendationRepository {
   }
 
   public async save(rec: Recommendation): Promise<Recommendation> {
+    enforceTenantContext(rec.organizationId);
     const existing = db.recommendations.get(rec.id);
     if (existing && existing.organizationId !== rec.organizationId) {
       throw new Error("Tenant Isolation Exception: Cannot modify or change tenant ownership for existing Recommendation.");
@@ -741,6 +781,7 @@ export class RecommendationRepository implements IRecommendationRepository {
   }
 
   public async deleteSoft(organizationId: string, id: string, deletedBy: string): Promise<boolean> {
+    enforceTenantContext(organizationId);
     const rec = db.recommendations.get(id);
     if (!rec || rec.organizationId !== organizationId) return false;
     rec.audit.deletedAt = new Date().toISOString();
