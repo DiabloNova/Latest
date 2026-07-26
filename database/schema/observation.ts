@@ -172,6 +172,7 @@ CREATE INDEX IF NOT EXISTS idx_observations_executed ON ai_observations(executed
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE ai_observations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_observations FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON ai_observations;
 
@@ -368,6 +369,7 @@ CREATE INDEX IF NOT EXISTS idx_mentions_entity ON brand_mentions(entity_id);
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE brand_mentions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE brand_mentions FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON brand_mentions;
 

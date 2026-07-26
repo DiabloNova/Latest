@@ -243,6 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_prompts_intent ON prompts(intent);
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE prompts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prompts FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON prompts;
 

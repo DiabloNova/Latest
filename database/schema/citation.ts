@@ -134,6 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_citations_domain ON citations(domain);
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE citations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE citations FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON citations;
 

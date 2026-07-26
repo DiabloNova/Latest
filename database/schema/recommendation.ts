@@ -135,6 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_recommendations_status ON recommendations(status)
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendations FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON recommendations;
 
