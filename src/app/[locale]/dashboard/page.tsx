@@ -78,6 +78,13 @@ const Skeleton = () => (
   </div>
 );
 
+/**
+ * Renders the brand health dashboard with metrics, citations, optimization tasks, and brand registration controls.
+ *
+ * Loads authenticated workspace metrics and provides localized loading, error, and retry states.
+ *
+ * @returns The dashboard interface for the authenticated workspace.
+ */
 export default function DashboardPage() {
   const { session } = useAuth();
   const { language } = useTheme();

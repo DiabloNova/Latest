@@ -10,6 +10,9 @@ import { Badge } from "@/components/Badge";
 import { Globe, ShieldCheck, Cpu, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+/**
+ * Renders a localized marketing landing page with authentication-aware workspace access and platform feature information.
+ */
 export default function MarketingLandingPage() {
   const { login, session } = useAuth();
   const { language } = useTheme();

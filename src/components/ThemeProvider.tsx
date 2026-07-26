@@ -16,6 +16,12 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+/**
+ * Provides theme, language, and text-direction settings to descendant components.
+ *
+ * @param initialLanguage - The language used when no persisted language is available.
+ * @returns A context provider containing theme, language, and direction settings.
+ */
 export function ThemeProvider({
   children,
   initialLanguage = "fa"

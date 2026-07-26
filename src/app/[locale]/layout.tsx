@@ -16,6 +16,12 @@ interface LayoutProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Configures the localized application layout and provider hierarchy.
+ *
+ * @param params - Resolves to the current route locale.
+ * @returns The document layout containing the localized direction, theme provider, authentication provider, and page content.
+ */
 export default async function RootLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
 

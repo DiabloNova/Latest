@@ -5,6 +5,9 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/Card";
 import { useTheme } from "@/components/ThemeProvider";
 
+/**
+ * Renders the localized Competitive Intel dashboard page with a placeholder for competitive monitoring.
+ */
 export default function CompetitivePage() {
   const { language } = useTheme();
 

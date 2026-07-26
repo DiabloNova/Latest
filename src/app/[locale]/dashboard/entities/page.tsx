@@ -5,6 +5,9 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/Card";
 import { useTheme } from "@/components/ThemeProvider";
 
+/**
+ * Renders the localized Entity Explorer page with knowledge graph information and a visualizer placeholder.
+ */
 export default function EntitiesPage() {
   const { language } = useTheme();
 
