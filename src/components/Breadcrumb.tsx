@@ -14,13 +14,13 @@ export interface BreadcrumbProps {
 export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
   return (
     <nav aria-label="Breadcrumb" className="mb-4">
-      <ol className="flex items-center space-x-2 text-xs text-[var(--text-muted)] rtl:space-x-reverse">
+      <ol className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 
           return (
             <li key={index} className="flex items-center gap-2">
-              {index > 0 && <ChevronRight size={12} className="text-[var(--text-muted)] rtl:rotate-180" />}
+              {index > 0 && <ChevronRight size={12} className="text-[var(--text-muted)] rtl:-scale-x-100" />}
               {isLast || !item.href ? (
                 <span className={`font-medium ${isLast ? "text-[var(--text-primary)]" : ""}`}>
                   {item.label}
