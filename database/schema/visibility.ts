@@ -162,6 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_visibility_date ON visibility_scores(date);
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE visibility_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visibility_scores FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON visibility_scores;
 

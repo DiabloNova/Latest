@@ -120,6 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_brands_deleted_at ON brands(deleted_at) WHERE del
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE brands FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON brands;
 

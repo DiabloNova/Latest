@@ -144,6 +144,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_entities_wikidata ON entities(wikidata_id)
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE entities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entities FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON entities;
 
@@ -298,6 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_relationships_target ON entity_relationships(targ
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation
 ALTER TABLE entity_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entity_relationships FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_policy ON entity_relationships;
 

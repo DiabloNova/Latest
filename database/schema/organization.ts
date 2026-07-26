@@ -94,6 +94,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug) 
 
 -- Enable PostgreSQL Row Level Security (RLS) for zero-trust tenant isolation on organizations
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS select_tenant_isolation_policy ON organizations;
 CREATE POLICY select_tenant_isolation_policy ON organizations
