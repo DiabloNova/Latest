@@ -140,7 +140,8 @@ export class TenantContextManager {
 
       if (options?.requireNewSavepoint) {
         // If independent rollback is explicitly required, use a PostgreSQL SAVEPOINT
-        const savepointName = `sp_${depth}`;
+        const savepointName =
+  `sp_${depth}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const client = parentCtx.dbClient;
         await client.query(`SAVEPOINT ${savepointName}`);
         try {
