@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS document_embeddings (
   tenant_id UUID NOT NULL,
   content_chunk TEXT NOT NULL,
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-  embedding VECTOR(1536) NOT NULL,
+  embedding VECTOR(768) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 

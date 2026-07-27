@@ -16,7 +16,7 @@ export interface ILLMClient {
 // 1. Google Gemini Provider configuration
 const googleApiKey = process.env.GOOGLE_AI_API_KEY || '';
 
-const googleProvider = googleApiKey
+export const googleProvider = googleApiKey
   ? createGoogleGenerativeAI({ apiKey: googleApiKey })
   : null;
 

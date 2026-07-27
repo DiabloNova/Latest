@@ -1,15 +1,8 @@
 import React from "react";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Vazirmatn } from "next/font/google";
+import { persianPrimary, persianDisplay } from "@/config/fonts";
 import "../globals.css";
-
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-vazirmatn",
-  display: "swap",
-});
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,8 +18,11 @@ interface LayoutProps {
 export default async function RootLayout({ children, params }: LayoutProps) {
   const { locale } = await params;
 
+  // Apply both primary and display font variable classes to html
+  const fontClasses = `${persianPrimary.variable} ${persianDisplay.variable}`;
+
   return (
-    <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} className={vazirmatn.variable}>
+    <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"} className={fontClasses}>
       <body>
         <ThemeProvider initialLanguage={locale as "en" | "fa"}>
           <AuthProvider>
