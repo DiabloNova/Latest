@@ -5,7 +5,8 @@
 ▲ Next.js 16.2.11 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 515ms
+- Environments: .env.local
+✓ Ready in 805ms
 
- GET /fa 200 in 1155ms (next.js: 835ms, application-code: 320ms)
- GET /fa/dashboard 200 in 734ms (next.js: 692ms, application-code: 42ms)
+○ Compiling /[locale]/dashboard ...
+ GET /fa/dashboard 200 in 8.5s (next.js: 8.0s, application-code: 544ms)

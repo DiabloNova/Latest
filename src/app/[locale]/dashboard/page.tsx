@@ -8,6 +8,8 @@ import { Button } from "@/components/Button";
 import { Badge } from "@/components/Badge";
 import { Input } from "@/components/Input";
 import { Dialog } from "@/components/Dialog";
+import { IngestionForm } from "@/components/features/ingestion/IngestionForm";
+import { BrandIntelligenceChat } from "@/components/features/rag/BrandIntelligenceChat";
 import { intelligenceService } from "@/services/intelligence";
 import { BrandHealthMetrics } from "@/schemas/intelligence";
 import {
@@ -16,22 +18,21 @@ import {
   FileText,
   AlertCircle,
   Plus,
-  CheckCircle2,
   ExternalLink,
   RefreshCw
 } from "lucide-react";
 import Link from "next/link";
 
-// Premium loading skeleton component (declared outside of render function to avoid resetting state & satisfying ESLint rules)
+// Premium loading skeleton component
 const Skeleton = () => (
   <div className="space-y-6">
     {/* Welcome Header Skeleton */}
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-pulse">
       <div className="space-y-2">
-        <div className="h-8 w-48 bg-[var(--border)] rounded-[var(--radius-md)]" />
-        <div className="h-4 w-96 bg-[var(--border)] rounded-[var(--radius-sm)]" />
+        <div className="h-8 w-48 bg-white/5 rounded-xl" />
+        <div className="h-4 w-96 bg-white/5 rounded-lg" />
       </div>
-      <div className="h-10 w-36 bg-[var(--border)] rounded-[var(--radius-md)]" />
+      <div className="h-10 w-36 bg-white/5 rounded-xl" />
     </div>
 
     {/* Metrics Cards Skeleton */}
@@ -40,40 +41,23 @@ const Skeleton = () => (
         <Card key={i} className="animate-pulse">
           <div className="flex items-start justify-between">
             <div className="space-y-3 flex-1">
-              <div className="h-3 w-2/3 bg-[var(--border)] rounded" />
-              <div className="h-8 w-1/2 bg-[var(--border)] rounded" />
+              <div className="h-3 w-2/3 bg-white/5 rounded" />
+              <div className="h-8 w-1/2 bg-white/5 rounded" />
             </div>
-            <div className="w-10 h-10 bg-[var(--border)] rounded-[var(--radius-sm)]" />
+            <div className="w-10 h-10 bg-white/5 rounded-lg" />
           </div>
           <div className="mt-6 flex items-center justify-between">
-            <div className="h-5 w-12 bg-[var(--border)] rounded-full" />
-            <div className="h-3 w-20 bg-[var(--border)] rounded" />
+            <div className="h-5 w-12 bg-white/5 rounded-full" />
+            <div className="h-3 w-20 bg-white/5 rounded" />
           </div>
         </Card>
       ))}
     </div>
 
-    {/* Table & Actions Grid Skeleton */}
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <Card className="lg:col-span-2 animate-pulse space-y-4">
-        <div className="h-6 w-1/3 bg-[var(--border)] rounded" />
-        <div className="h-4 w-2/3 bg-[var(--border)] rounded" />
-        <div className="space-y-3 pt-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 w-full bg-[var(--border)] rounded" />
-          ))}
-        </div>
-      </Card>
-
-      <Card className="animate-pulse space-y-4">
-        <div className="h-6 w-1/2 bg-[var(--border)] rounded" />
-        <div className="h-4 w-5/6 bg-[var(--border)] rounded" />
-        <div className="space-y-4 pt-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 w-full bg-[var(--border)] rounded" />
-          ))}
-        </div>
-      </Card>
+    {/* RAG Section Skeletons */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="h-[420px] bg-white/5 rounded-2xl animate-pulse" />
+      <div className="h-[420px] bg-white/5 rounded-2xl animate-pulse" />
     </div>
   </div>
 );
@@ -146,8 +130,8 @@ export default function DashboardPage() {
   // High-fidelity error state renderer
   if (error) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center space-y-6">
-        <div className="p-4 bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] rounded-full">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center space-y-6 animate-fade-in">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full">
           <AlertCircle size={40} />
         </div>
         <div className="max-w-md space-y-2">
@@ -209,16 +193,16 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)] font-display">
             {language === "fa"
               ? `خوش آمدید، ${session.user?.name || "کاربر گرامی"}`
               : `Welcome back, ${session.user?.name || "Guest"}`}
           </h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
             {language === "fa"
               ? "بررسی و مدیریت لحظه‌ای پایداری حضور برند شما در نتایج هوش مصنوعی و مدل‌های زبانی."
               : "Overview of your brand's presence metrics across leading generative answer platforms."}
@@ -239,18 +223,18 @@ export default function DashboardPage() {
             <Card key={idx} hoverable>
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
-                  <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block">
                     {metric.title}
                   </span>
-                  <span className="text-2xl font-black text-[var(--text-primary)] block">
+                  <span className="text-2xl font-black text-[var(--text-primary)] block font-display">
                     {metric.value}
                   </span>
                 </div>
-                <div className="p-2 bg-[var(--background)] border border-[var(--border)] rounded-[var(--radius-sm)] text-[var(--color-accent-600)]">
+                <div className="p-2.5 bg-white/[0.02] border border-white/10 rounded-xl text-[#1F76F9]">
                   <Icon size={18} className="rtl:-scale-x-100" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs">
+              <div className="mt-4 flex items-center justify-between text-[10px]">
                 <Badge variant={metric.changeType}>
                   {metric.change}
                 </Badge>
@@ -261,6 +245,12 @@ export default function DashboardPage() {
             </Card>
           );
         })}
+      </div>
+
+      {/* Live RAG & Ingestion Console Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <IngestionForm />
+        <BrandIntelligenceChat />
       </div>
 
       {/* Analytical Layout Section */}
@@ -288,7 +278,7 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-start border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border)] text-xs text-[var(--text-muted)] font-semibold uppercase bg-[var(--background)]">
+                  <tr className="border-b border-white/5 text-[10px] text-[var(--text-muted)] font-bold uppercase bg-white/[0.01]">
                     <th className="py-3 px-4 text-start">{language === "fa" ? "مدل" : "Engine"}</th>
                     <th className="py-3 px-4 text-start">{language === "fa" ? "کوئری فرضی" : "Prompt Query"}</th>
                     <th className="py-3 px-4 text-start">{language === "fa" ? "نوع ارجاع" : "Type"}</th>
@@ -296,9 +286,9 @@ export default function DashboardPage() {
                     <th className="py-3 px-4"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--border)] text-sm">
+                <tbody className="divide-y divide-white/5 text-xs">
                   {data.recentCitations.map((cit) => (
-                    <tr key={cit.id} className="hover:bg-[var(--background)] transition-colors">
+                    <tr key={cit.id} className="hover:bg-white/[0.01] transition-colors">
                       <td className="py-3 px-4 font-bold text-[var(--text-primary)]">
                         {cit.engine}
                       </td>
@@ -310,7 +300,7 @@ export default function DashboardPage() {
                           {cit.status}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-xs text-[var(--text-muted)]">
+                      <td className="py-3 px-4 text-[10px] text-[var(--text-muted)]">
                         {cit.time}
                       </td>
                       <td className="py-3 px-4 text-end">
@@ -318,7 +308,7 @@ export default function DashboardPage() {
                           href={cit.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex p-1 text-[var(--text-muted)] hover:text-[var(--color-accent-600)] transition-colors"
+                          className="inline-flex p-1 text-[var(--text-muted)] hover:text-[#1F76F9] transition-colors"
                         >
                           <ExternalLink size={14} className="rtl:-scale-x-100" />
                         </a>
@@ -342,37 +332,37 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <CheckCircle2 className="text-[var(--color-success)] mt-0.5 flex-shrink-0" size={16} />
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-bold text-[var(--text-primary)]">
                   {language === "fa" ? "افزودن اسکیما به صفحات فرود" : "Inject Schema on Product Pages"}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                   {language === "fa" ? "فرمت JSON-LD به مدل‌ها در درک موجودیت‌ها کمک می‌کند." : "Provides structured context for ChatGPT models."}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <AlertCircle className="text-[var(--color-warning)] mt-0.5 flex-shrink-0" size={16} />
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-bold text-[var(--text-primary)]">
                   {language === "fa" ? "رفع خطای توکنایزر زبان فارسی" : "Address Hallucinated Claims"}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                   {language === "fa" ? "درخواست اسکن هدفمند جدید برای رفع تناقض‌های متنی." : "Create target benchmarks for incorrect statements."}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--background)] border border-[var(--border)]">
-              <CheckCircle2 className="text-[var(--color-info)] mt-0.5 flex-shrink-0" size={16} />
+            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-bold text-[var(--text-primary)]">
                   {language === "fa" ? "به‌روزرسانی ساختار llms.txt" : "Publish structured llms.txt"}
                 </p>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                   {language === "fa" ? "به‌روزرسانی دسترسی ربات‌های جمع‌آوری داده هوش مصنوعی." : "Allows seamless crawling by Perplexity crawler engines."}
                 </p>
               </div>
@@ -403,11 +393,11 @@ export default function DashboardPage() {
             required
           />
 
-          <div className="flex items-center gap-3 justify-end pt-4 border-t border-[var(--border)]">
+          <div className="flex items-center gap-3 justify-end pt-4 border-t border-white/5">
             <Button variant="outline" type="button" onClick={() => setIsAddBrandOpen(false)}>
               {language === "fa" ? "انصراف" : "Cancel"}
             </Button>
-            <Button variant="secondary" type="submit">
+            <Button variant="primary" type="submit">
               {language === "fa" ? "ایجاد و شروع اسکن" : "Register & Run Audit"}
             </Button>
           </div>
