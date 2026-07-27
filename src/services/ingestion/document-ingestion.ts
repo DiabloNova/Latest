@@ -118,7 +118,7 @@ export class DocumentIngestionService {
         // E. Fail-safe Knowledge Graph Extraction
         try {
           const extractedGraph = await extractGraphEntities(chunk);
-          await this.graphStore.upsertEntitiesAndRelationships(extractedGraph, chunkId, tenantId);
+          await this.graphStore.upsertEntitiesAndRelationships(extractedGraph, chunkId);
         } catch (kgErr: unknown) {
           // Log the KG error, but DO NOT fail the chunk ingestion. Vector data is already saved.
           console.error(
