@@ -12,6 +12,8 @@
     "@ai-sdk/google": "^4.0.24",
     "@xyflow/react": "^12.11.2",
     "ai": "^7.0.37",
+    "cheerio": "^1.2.0",
+    "html-to-text": "^10.0.0",
     "lucide-react": "^1.26.0",
     "next": "16.2.11",
     "pg": "^8.22.0",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/html-to-text": "^9.0.4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

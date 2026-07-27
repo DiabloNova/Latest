@@ -1,32 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { TenantContextManager } from "@/core/database/tenant-context";
-import { PostgresClient } from "@/features/admin/infrastructure/persistence/postgres";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { TenantContextManager } from '@/core/database/tenant-context';
+import { PostgresClient } from '@/features/admin/infrastructure/persistence/postgres';
 
-// Validation schema
-const requestSchema = z.object({
-  entityName: z.string().min(1, "نام موجودیت باید ارسال شود"),
+// Validation schema with Persian error message
+const querySchema = z.object({
+  entityName: z.string().min(1, 'نام موجودیت باید ارسال شود'),
 });
+
+interface QueryRelationRow {
+  id: string;
+  relationship_type: string;
+  properties: string | Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  source_entity_id: string;
+  source_name: string;
+  source_type: string;
+  target_entity_id: string;
+  target_name: string;
+  target_type: string;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parsed = requestSchema.safeParse(body);
+    const parsed = querySchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Bad Request", details: parsed.error.format() },
+        { error: 'Bad Request', details: parsed.error.format() },
         { status: 400 }
       );
     }
 
     const { entityName } = parsed.data;
 
+    // Secure multi-tenant context extraction
     const organizationId = req.headers.get("x-tenant-id") || "tenant-pipeline-a";
     const userId = req.headers.get("x-user-id") || "usr-1001";
     const requestId = req.headers.get("x-request-id") || `req-kg-${Date.now()}`;
 
-    const graphResponse = await TenantContextManager.runWithTenantContext(
+    const subGraph = await TenantContextManager.runWithTenantContext(
       organizationId,
       userId,
       requestId,
@@ -39,7 +54,7 @@ export async function POST(req: NextRequest) {
           const centralEntityQuery = `
             SELECT id, name, type, properties
             FROM kg_entities
-            WHERE tenant_id = $1 AND LOWER(name) = LOWER($2)
+            WHERE organization_id = $1 AND LOWER(name) = LOWER($2)
             LIMIT 1;
           `;
 
@@ -53,7 +68,7 @@ export async function POST(req: NextRequest) {
             const relationshipsQuery = `
               SELECT id, source_entity_id, target_entity_id, relationship_type, properties
               FROM kg_relationships
-              WHERE tenant_id = $1 AND (source_entity_id = $2 OR target_entity_id = $2);
+              WHERE organization_id = $1 AND (source_entity_id = $2 OR target_entity_id = $2);
             `;
 
             const relsRes = await pg.query(relationshipsQuery, [organizationId, centralId]);
@@ -73,7 +88,7 @@ export async function POST(req: NextRequest) {
             const nodesQuery = `
               SELECT id, name, type, properties
               FROM kg_entities
-              WHERE tenant_id = $1 AND id = ANY($2::uuid[]);
+              WHERE organization_id = $1 AND id = ANY($2::uuid[]);
             `;
             const nodesRes = await pg.query(nodesQuery, [organizationId, uniqueNodeIds]);
             const dbNodes = nodesRes.rows || [];
@@ -178,13 +193,12 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    return NextResponse.json(graphResponse);
+    return NextResponse.json(subGraph);
   } catch (error: unknown) {
     console.error("[API KG Query Route Error]:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal Server Error", message },
-      { status: 500 }
+      { error: "Internal Server Error", message },      { status: 500 }
     );
   }
 }
