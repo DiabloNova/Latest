@@ -4,10 +4,21 @@
  */
 
 import { chunkText } from "../ai/text-chunker";
+import { generateEmbedding } from "../ai/embed-client";
+import { analyzeSentiment } from "../ai/sentiment-analysis";
 import { VectorStoreService } from "../knowledge-graph/vector-store";
 import { extractGraphEntities } from "../ai/graph-extraction";
 import { GraphStoreService } from "../knowledge-graph/graph-store";
 import { TenantContextManager } from "../../core/database/tenant-context";
+
+// ==========================================
+// INTERFACES
+// ==========================================
+
+export interface ChunkError {
+  chunkIndex: number;
+  error: string;
+}
 
 export interface IngestedChunkResult {
   chunkId: string;
@@ -17,110 +28,28 @@ export interface IngestedChunkResult {
 }
 
 export interface IngestionResult {
-  tenantId: string;
-  totalChunks: number;
-  processedChunks: IngestedChunkResult[];
-import { chunkText } from "../ai/text-chunker";
-import { generateEmbedding } from "../ai/embed-client";
-import { analyzeSentiment } from "../ai/sentiment-analysis";
-import { VectorStoreService } from "../knowledge-graph/vector-store";
-import { TenantContextManager } from "../../core/database/tenant-context";
-
-export interface ChunkError {
-  chunkIndex: number;
-  error: string;
-}
-
-export interface IngestionResult {
   success: boolean;
+  tenantId: string;
   totalChunks: number;
   processedChunks: number;
   failedChunks: number;
   errors: ChunkError[];
 }
 
+// ==========================================
+// SERVICE CLASS
+// ==========================================
+
 export class DocumentIngestionService {
-  private vectorStore: VectorStoreService;
-  private graphStore: GraphStoreService;
-
-  constructor(vectorStore?: VectorStoreService, graphStore?: GraphStoreService) {
-    this.vectorStore = vectorStore || new VectorStoreService();
-    this.graphStore = graphStore || new GraphStoreService();
-  }
-
-  /**
-   * Processes a raw text document: chunks it, embeds it, indexes it,
-   * extracts entities/relationships, and safely populates the Knowledge Graph.
-   */
-  public async ingestDocument(
-    text: string,
-    metadata: Record<string, unknown> = {},
-    maxChunkSize = 500,
-    overlap = 50
-  ): Promise<IngestionResult> {
-    const tenantId = TenantContextManager.getRequiredTenantId();
-
-    // 1. Chunk the document text
-    const chunks = chunkText(text, maxChunkSize, overlap);
-    const processedChunks: IngestedChunkResult[] = [];
-
-    // 2. Process each chunk
-    for (const chunk of chunks) {
-      // Simulate standard 1536-dimensional vector embedding
-      // (Uses deterministic floats to avoid random fluctuation in tests)
-      const embedding = Array.from({ length: 1536 }, (_, i) => {
-        // Create deterministic mock floats
-        const code = chunk.charCodeAt(i % chunk.length) || 1;
-        return (i === 0 ? 0.8 : 0.001) + (code / 100000);
-      });
-
-      // Insert chunk embedding securely under the current tenant transaction context
-      const savedEmbedding = await this.vectorStore.insertEmbedding(
-        tenantId,
-        chunk,
-        embedding,
-        metadata
-      );
-
-      const chunkId = savedEmbedding.id;
-      let isGraphExtracted = false;
-      let graphError: string | undefined;
-
-      // 3. SECURE PIPELINE ERROR BOUNDARY
-      // If graph extraction or population fails, we must NOT fail the overall vector ingestion!
-      try {
-        const extractedGraph = await extractGraphEntities(chunk);
-        await this.graphStore.upsertEntitiesAndRelationships(extractedGraph, chunkId);
-        isGraphExtracted = true;
-      } catch (err: unknown) {
-        graphError = err instanceof Error ? err.message : String(err);
-        console.error(
-          `[DocumentIngestionService] Fail-safe active. KG population failed for chunk ${chunkId}:`,
-          graphError
-        );
-      }
-
-      processedChunks.push({
-        chunkId,
-        contentChunk: chunk,
-        isGraphExtracted,
-        graphError,
-      });
-    }
-
-    return {
-      tenantId,
-      totalChunks: chunks.length,
-      processedChunks,
-
-  constructor(vectorStore?: VectorStoreService) {
-    this.vectorStore = vectorStore || new VectorStoreService();
-  }
+  constructor(
+    private vectorStore: VectorStoreService = new VectorStoreService(),
+    private graphStore: GraphStoreService = new GraphStoreService()
+  ) {}
 
   /**
    * Central Ingestion Pipeline for raw documents/texts.
-   * Chunks, embeds, analyzes sentiment, and secures elements in PostgreSQL Vector DB.
-   * Enforces zero-trust isolation boundaries dynamically.
+   * Chunks, embeds, analyzes sentiment, secures elements in PostgreSQL Vector DB,
+   * and attempts background KG population with fail-safe error boundaries.
    */
   public async ingestDocument(
     rawText: string,
@@ -140,6 +69,7 @@ export class DocumentIngestionService {
     if (totalChunks === 0) {
       return {
         success: true,
+        tenantId,
         totalChunks: 0,
         processedChunks: 0,
         failedChunks: 0,
@@ -147,22 +77,23 @@ export class DocumentIngestionService {
       };
     }
 
-    let processedChunks = 0;
-    let failedChunks = 0;
+    let processedCount = 0;
+    let failedCount = 0;
     const errors: ChunkError[] = [];
 
-    // 3. Step 2 & 3 & 4: Process each chunk
+    // 3. Step 2, 3 & 4: Process each chunk
     for (let i = 0; i < totalChunks; i++) {
       const chunk = chunks[i];
+      let chunkId = `chunk_${tenantId}_${i}_${Date.now()}`;
 
       try {
-        // Generate embedding
+        // A. Generate embedding (Uses real or mocked 768-dim provider)
         const embedding = await generateEmbedding(chunk);
 
-        // Analyze sentiment
+        // B. Analyze sentiment
         const sentiment = await analyzeSentiment(chunk);
 
-        // Build metadata payload for DB insertion, embedding sentiment properties inside metadata
+        // C. Build metadata payload for DB insertion
         const chunkMetadata = {
           ...metadata,
           chunkIndex: i,
@@ -173,33 +104,52 @@ export class DocumentIngestionService {
           },
         };
 
-        // Insert into Vector Store (under secure tenant context transaction)
-        await this.vectorStore.insertEmbedding(
+        // D. Insert into Vector DB
+        const insertResult = await this.vectorStore.insertEmbedding(
           tenantId,
           chunk,
           embedding,
           chunkMetadata
         );
+        
+        // Safely extract ID if the service returns it, otherwise use fallback
+        chunkId = (insertResult as any)?.id || chunkId;
 
-        processedChunks++;
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error(`[DocumentIngestionService] Error processing chunk at index ${i}:`, errorMsg);
-        errors.push({
-          chunkIndex: i,
-          error: errorMsg,
-        });
-        failedChunks++;
+        // E. Fail-safe Knowledge Graph Extraction
+        try {
+          const extractedGraph = await extractGraphEntities(chunk);
+          await this.graphStore.upsertEntitiesAndRelationships(extractedGraph, chunkId, tenantId);
+        } catch (kgErr: unknown) {
+          // Log the KG error, but DO NOT fail the chunk ingestion. Vector data is already saved.
+          console.error(
+            `[DocumentIngestionService] Fail-safe active. KG population failed for chunk ${i} (ID: ${chunkId}):`,
+            kgErr instanceof Error ? kgErr.message : String(kgErr)
+          );
+        }
+
+        // If we reach here, the core vector ingestion succeeded
+        processedCount++;
+
+      } catch (err: unknown) {
+        // Critical failure for this chunk (e.g., embedding or vector DB insertion failed)
+        failedCount++;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        errors.push({ chunkIndex: i, error: errorMessage });
+        
+        console.error(
+          `[DocumentIngestionService] Critical failure for chunk ${i}:`,
+          errorMessage
+        );
       }
     }
 
-    const success = processedChunks > 0;
-
+    // 4. Return the aggregated result matching our agreed IngestionResult interface
     return {
-      success,
+      success: processedCount > 0, // True if at least one chunk was processed
+      tenantId,
       totalChunks,
-      processedChunks,
-      failedChunks,
+      processedChunks: processedCount,
+      failedChunks: failedCount,
       errors,
     };
   }
