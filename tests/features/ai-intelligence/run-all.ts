@@ -13,6 +13,7 @@ import { testEvents } from "./events.test";
 import { TenantContextManager } from "../../../src/core/database/tenant-context";
 import { testTenantPipeline } from "./tenant-pipeline.test";
 import { testVectorStore } from "./vector-store.test";
+import { testRAGQueryService } from "../../services/rag/query-service.test";
 
 const mockEmbeddingsStore: any[] = [];
 
@@ -188,6 +189,9 @@ async function main() {
 
     // Run Vector Store and Persian KG Foundation tests
     await testVectorStore();
+
+    // Run Optimus RAG Query Pipeline Tests
+    await testRAGQueryService();
 
     testEvents();
 
