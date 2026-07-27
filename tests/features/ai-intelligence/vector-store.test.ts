@@ -15,13 +15,13 @@ export async function testVectorStore() {
   const tenantBId = "org-startup-02";
 
   const chunkA1 = "اپتیموس ای آی یک سیستم پیشرفته مدیریت گراف دانش برند است."; // Optimus AI is an advanced brand knowledge graph management system.
-  const embeddingA1 = Array.from({ length: 1536 }, (_, i) => (i === 0 ? 0.9 : 0.01)); // mock embedding
+  const embeddingA1 = Array.from({ length: 768 }, (_, i) => (i === 0 ? 0.9 : 0.01)); // mock embedding
 
   const chunkA2 = "موتورهای پاسخ دهی ژنراتور بر مبنای سئو و بهینه سازی جی ای او کار می کنند."; // Answer engines work on SEO and GEO optimization.
-  const embeddingA2 = Array.from({ length: 1536 }, (_, i) => (i === 0 ? 0.8 : 0.02));
+  const embeddingA2 = Array.from({ length: 768 }, (_, i) => (i === 0 ? 0.8 : 0.02));
 
   const chunkB1 = "Iran localized Persian language LLMs have distinct tokenization characteristics.";
-  const embeddingB1 = Array.from({ length: 1536 }, (_, i) => (i === 0 ? 0.1 : 0.05));
+  const embeddingB1 = Array.from({ length: 768 }, (_, i) => (i === 0 ? 0.1 : 0.05));
 
   // 1. Test insertion under Tenant A context
   console.log("  * Testing Insert Embedding under Tenant A Context...");
@@ -51,7 +51,7 @@ export async function testVectorStore() {
   console.log("  * Testing Vector Similarity Search and RLS Tenant Isolation Boundaries...");
   await TenantContextManager.runWithTenantContext(tenantAId, "user-01", "req-vector-03", async () => {
     // Search query embedding close to embeddingA1
-    const queryEmbedding = Array.from({ length: 1536 }, (_, i) => (i === 0 ? 0.95 : 0.01));
+    const queryEmbedding = Array.from({ length: 768 }, (_, i) => (i === 0 ? 0.95 : 0.01));
     const results = await vectorService.findSimilarEmbeddings(tenantAId, queryEmbedding, 10);
 
     // Results should contain Tenant A chunks but absolutely ZERO Tenant B chunks (leakage protection check)
