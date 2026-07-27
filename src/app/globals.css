@@ -31,30 +31,28 @@
     --color-success-green: #3BB44B;
     --color-white: #FFFFFF;
 
-    /* Background Colors */
-    --color-bg-dark: #0A0E27;
-    --color-bg-card: rgba(255, 255, 255, 0.05);
-
-    --color-accent-600: #1F76F9;
-
-    /* Glassmorphic variables */
-    --glass-bg: rgba(255, 255, 255, 0.04);
+    /* Theme Variables - Dark Mode (Default) */
+    --bg-primary: #0a0e27;
+    --bg-secondary: #111535;
+    --glass-bg: rgba(255, 255, 255, 0.03);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #1F76F9 0%, #FF6F41 100%);
-    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
-
-    /* Theme tokens mapped to glassmorphism styles by default (always dark mode aesthetic) */
-    --background: #0A0E27;
-    --foreground: #FFFFFF;
-    --card: rgba(255, 255, 255, 0.04);
-    --card-foreground: #FFFFFF;
-    --border: rgba(255, 255, 255, 0.08);
-    --text-primary: #FFFFFF;
-    --text-secondary: rgba(255, 255, 255, 0.75);
+    --glass-blur: blur(20px);
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
     --text-muted: rgba(255, 255, 255, 0.45);
+    --accent-blue: #1F76F9;
+    --accent-orange: #FF6F41;
+    --accent-green: #3BB44B;
+    --gradient-primary: linear-gradient(135deg, #1F76F9 0%, #FF6F41 100%);
+    --gradient-glow: radial-gradient(circle at 50% 50%, rgba(31, 118, 249, 0.15) 0%, transparent 70%);
+
+    --background: var(--bg-primary);
+    --foreground: var(--text-primary);
+    --card: var(--glass-bg);
+    --card-foreground: var(--text-primary);
+    --border: var(--glass-border);
+    --color-accent-600: #1F76F9;
 
     /* Semantic Colors */
     --color-success: #3BB44B;
@@ -80,26 +78,59 @@
     --motion-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Force dark system colors by default for consistent premium branding */
+  /* Force Dark Theme Variables explicitly */
   :root.dark {
-    --background: #0A0E27;
-    --foreground: #FFFFFF;
-    --card: rgba(255, 255, 255, 0.04);
-    --card-foreground: #FFFFFF;
-    --border: rgba(255, 255, 255, 0.08);
-    --text-primary: #FFFFFF;
-    --text-secondary: rgba(255, 255, 255, 0.75);
+    --bg-primary: #0a0e27;
+    --bg-secondary: #111535;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glass-blur: blur(20px);
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
     --text-muted: rgba(255, 255, 255, 0.45);
+    --accent-blue: #1F76F9;
+    --accent-orange: #FF6F41;
+    --accent-green: #3BB44B;
+    --gradient-primary: linear-gradient(135deg, #1F76F9 0%, #FF6F41 100%);
+    --gradient-glow: radial-gradient(circle at 50% 50%, rgba(31, 118, 249, 0.15) 0%, transparent 70%);
+
+    --background: var(--bg-primary);
+    --foreground: var(--text-primary);
+    --card: var(--glass-bg);
+    --card-foreground: var(--text-primary);
+    --border: var(--glass-border);
+    --color-accent-600: #1F76F9;
+  }
+
+  /* Premium Light Theme Variables */
+  :root.light {
+    --bg-primary: #f0f4f8;
+    --bg-secondary: #ffffff;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+    --glass-blur: blur(20px);
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-muted: rgba(26, 32, 44, 0.5);
+    --accent-blue: #1F76F9;
+    --accent-orange: #FF6F41;
+    --accent-green: #3BB44B;
+    --gradient-primary: linear-gradient(135deg, #1F76F9 0%, #FF6F41 100%);
+    --gradient-glow: radial-gradient(circle at 50% 50%, rgba(31, 118, 249, 0.05) 0%, transparent 70%);
+
+    --background: var(--bg-primary);
+    --foreground: var(--text-primary);
+    --card: var(--glass-bg);
+    --card-foreground: var(--text-primary);
+    --border: var(--glass-border);
+    --color-accent-600: #1F76F9;
   }
 }
 
 body {
-  background-color: #0A0E27;
-  background-image:
-    radial-gradient(at 0% 0%, rgba(31, 118, 249, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(255, 111, 65, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(121, 173, 251, 0.06) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -125,4 +156,146 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* Premium Ambient Floating Background and Keyframes */
+.ambient-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.float-animation {
+  animation: float 20s infinite ease-in-out;
+  will-change: transform;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+/* Premium Glass Card Styles */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  color: var(--foreground);
+  transition: background var(--motion-normal), border var(--motion-normal), box-shadow var(--motion-normal), transform var(--motion-normal);
+}
+
+@media (min-width: 1024px) {
+  .glass-card {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(31, 118, 249, 0.15);
+  border-color: rgba(31, 118, 249, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root.light .glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 40px 0 rgba(31, 118, 249, 0.1);
+}
+
+/* Premium Pulse Animation */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite ease-in-out;
+}
+
+/* Premium Button Shimmer */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.btn-shimmer:hover::before {
+  left: 100%;
+}
+
+/* Animation Utilities with Fill-Modes */
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+/* Staggered delay utility classes */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Accessibility / Reduced Motion Safeguard */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
 }

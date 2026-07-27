@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { Dropdown } from "@/components/Dropdown";
 import { Button } from "@/components/Button";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import {
   LayoutDashboard,
   BrainCircuit,
@@ -80,9 +81,10 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]" dir={direction}>
+    <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)] relative overflow-hidden" dir={direction}>
+      <AmbientBackground />
       {/* HEADER ZONE */}
-      <header className="sticky top-0 z-40 h-16 w-full flex items-center justify-between px-4 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 h-16 w-full flex items-center justify-between px-4 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md relative z-10">
         <div className="flex items-center gap-3">
           {/* Mobile menu trigger */}
           <button
@@ -154,7 +156,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {/* SIDEBAR NAVIGATION - DESKTOP */}
         <aside
           className={`hidden md:flex flex-col border-e border-[var(--border)] bg-[var(--background)] transition-all duration-300 ${

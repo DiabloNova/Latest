@@ -275,12 +275,17 @@ if (require.main === module) {
     .then(() => restoreOriginalPool())
     .catch(err => {
       restoreOriginalPool();
+      console.error(err);
+      process.exit(1);
+    });
+}
+
+/**
  * Programmatic Enterprise Test Suite for Document Ingestion Pipeline
  * Verifies document chunking, embedding, sentiment processing, database storage, partial success error recovery,
  * and zero-trust multi-tenant isolation boundaries.
  */
 
-import { DocumentIngestionService } from "../../../src/services/ingestion/document-ingestion";
 import { VectorStoreService } from "../../../src/services/knowledge-graph/vector-store";
 import { TenantContextManager, TenantContextViolationException } from "../../../src/core/database/tenant-context";
 

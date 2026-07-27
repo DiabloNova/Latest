@@ -36,7 +36,7 @@ export const Input: React.FC<InputProps> = ({
           ${
             error
               ? "border-red-500/50 focus:border-red-500 focus:ring-1 focus:ring-red-500/30"
-              : "border-white/10 focus:border-[#1F76F9] focus:ring-1 focus:ring-[#1F76F9]/30 focus:bg-white/[0.04]"
+              : "border-white/10 focus:border-[#1F76F9] focus:ring-1 focus:ring-[#1F76F9]/30 focus:bg-white/[0.04] focus:shadow-[0_0_15px_rgba(31,118,249,0.15)]"
           }
           ${className}
         `}

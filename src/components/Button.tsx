@@ -23,8 +23,8 @@ export const Button: React.FC<ButtonProps> = ({
   const variants = {
     primary: `
       bg-gradient-to-r from-[#1F76F9] to-[#FF6F41] text-white
-      hover:shadow-[0_0_20px_0_rgba(31,118,249,0.45)] hover:scale-[1.02]
-      border border-transparent
+      hover:shadow-[0_0_25px_0_rgba(31,118,249,0.45)] hover:scale-[1.02]
+      border border-transparent btn-shimmer
     `,
     secondary: `
       bg-white/[0.04] text-white hover:bg-white/[0.08]
@@ -33,15 +33,15 @@ export const Button: React.FC<ButtonProps> = ({
     `,
     outline: `
       bg-transparent text-white border border-white/10
-      hover:bg-white/[0.04] hover:border-white/20
+      hover:bg-white/[0.04] hover:border-white/20 hover:scale-[1.01]
     `,
     ghost: `
-      bg-transparent text-white hover:bg-white/[0.04] border border-transparent
+      bg-transparent text-white hover:bg-white/[0.04] border border-transparent hover:scale-[1.01]
     `,
     danger: `
       bg-red-600 text-white hover:bg-red-500
       hover:shadow-[0_0_20px_0_rgba(239,68,68,0.4)] hover:scale-[1.02]
-      border border-transparent
+      border border-transparent btn-shimmer
     `,
   };
 

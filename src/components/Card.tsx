@@ -13,7 +13,7 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <GlassCard
-      className={`p-5 ${className}`}
+      className={`p-6 ${className}`}
       hoverable={hoverable}
       {...props}
     >

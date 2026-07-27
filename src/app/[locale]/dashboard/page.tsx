@@ -193,7 +193,7 @@ export default function DashboardPage() {
       content: (
         <div className="space-y-6">
           {/* Row 1: KPI Metrics */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-slide-up">
             <KPICard
               title={isRtl ? "مجموع سیگنال‌های پایش شده" : "Total Mentions Tracked"}
               value={analyticsSummary.totalMentions}
@@ -229,7 +229,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 2: Charts Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 animate-slide-up animation-delay-150">
             <div className="lg:col-span-2">
               <SentimentTrendChart data={analyticsSummary.recentTrend} />
             </div>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 3: Interactive Knowledge Graph Explorer */}
-          <div className="w-full">
+          <div className="w-full animate-slide-up animation-delay-300">
             <KnowledgeGraphExplorer />
           </div>
         </div>
@@ -251,13 +251,13 @@ export default function DashboardPage() {
       content: (
         <div className="space-y-6">
           {/* Live Ingestion & Chat Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up">
             <IngestionForm />
             <BrandIntelligenceChat />
           </div>
 
           {/* Table & Optimizations Row */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 animate-slide-up animation-delay-150">
             {/* Live Citation Stream table */}
             <Card className="lg:col-span-2">
               <CardHeader>
