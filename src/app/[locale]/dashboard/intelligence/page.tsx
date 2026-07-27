@@ -9,6 +9,8 @@ import { Button } from "@/components/Button";
 import {
   RefreshCw
 } from "lucide-react";
+import { IngestionForm } from "@/components/features/ingestion/IngestionForm";
+import { BrandIntelligenceChat } from "@/components/features/rag/BrandIntelligenceChat";
 
 /**
  * Renders a localized dashboard for evaluating brand representation across AI engines.
@@ -192,6 +194,12 @@ export default function IntelligencePage() {
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Interactive Brand Ingestion & RAG Query Console */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <IngestionForm />
+        <BrandIntelligenceChat />
       </div>
 
       {/* Dynamic Tabs containing AI Insights */}
