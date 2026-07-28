@@ -18,7 +18,9 @@ import {
   Moon,
   Globe,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Database,
+  Search
 } from "lucide-react";
 
 interface DashboardShellProps {
@@ -36,6 +38,8 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
 
   const navigationItems = [
     { name: language === "fa" ? "بررسی اجمالی" : "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: language === "fa" ? "ورود اسناد" : "Document Ingestion", href: "/dashboard/ingestion", icon: Database },
+    { name: language === "fa" ? "جستجوی معنایی" : "RAG Query Sandbox", href: "/dashboard/query", icon: Search },
     { name: language === "fa" ? "هوشمندی برند" : "Brand Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
     { name: language === "fa" ? "کاوشگر موجودیت‌ها" : "Entity Explorer", href: "/dashboard/entities", icon: Network },
     { name: language === "fa" ? "تحلیل رقابتی" : "Competitive Intel", href: "/dashboard/competitive", icon: Compass },
