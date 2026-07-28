@@ -19,9 +19,9 @@ export const Input: React.FC<InputProps> = ({
   const inputId = id || generatedId;
 
   return (
-    <div className="w-full flex flex-col gap-1.5 animate-fade-in">
+    <div className="w-full flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-xs font-bold text-[var(--text-secondary)]">
+        <label htmlFor={inputId} className="text-sm font-medium text-[var(--text-secondary)]">
           {label}
         </label>
       )}
@@ -29,21 +29,20 @@ export const Input: React.FC<InputProps> = ({
         type={type}
         id={inputId}
         className={`
-          w-full px-4 py-3 text-sm rounded-xl outline-none
-          bg-white/[0.02] text-white border transition-all duration-300
-          backdrop-blur-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]
-          placeholder:text-white/30
+          w-full px-3 py-2 text-sm rounded-[var(--radius-md)] outline-none
+          bg-[var(--card)] text-[var(--text-primary)] border transition-all duration-200
+          placeholder:text-[var(--text-muted)]
           ${
             error
-              ? "border-red-500/50 focus:border-red-500 focus:ring-1 focus:ring-red-500/30"
-              : "border-white/10 focus:border-[#1F76F9] focus:ring-1 focus:ring-[#1F76F9]/30 focus:bg-white/[0.04]"
+              ? "border-[var(--color-error)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-error)_30%,transparent)]"
+              : "border-[var(--border)] focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary-600)_25%,transparent)]"
           }
           ${className}
         `}
         {...props}
       />
       {error && (
-        <span className="text-xs text-red-400 font-semibold mt-0.5 animate-fade-in">
+        <span className="text-xs text-[var(--color-error)] font-medium mt-0.5">
           {error}
         </span>
       )}

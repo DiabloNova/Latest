@@ -28,17 +28,17 @@ export const KPICard: React.FC<KPICardProps> = ({
 }) => {
   if (loading) {
     return (
-      <Card className="animate-pulse">
+      <Card className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-3 flex-1">
-            <div className="h-3 w-2/3 bg-white/5 rounded animate-pulse" />
-            <div className="h-8 w-1/2 bg-white/5 rounded animate-pulse" />
+            <div className="h-3 w-2/3 skeleton rounded" />
+            <div className="h-8 w-1/2 skeleton rounded" />
           </div>
-          <div className="w-10 h-10 bg-white/5 rounded-lg animate-pulse" />
+          <div className="w-10 h-10 skeleton rounded-lg" />
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <div className="h-5 w-12 bg-white/5 rounded-full animate-pulse" />
-          <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+          <div className="h-5 w-12 skeleton rounded-full" />
+          <div className="h-3 w-20 skeleton rounded" />
         </div>
       </Card>
     );
@@ -59,7 +59,7 @@ export const KPICard: React.FC<KPICardProps> = ({
           </span>
         </div>
         {Icon && (
-          <div className="p-2.5 bg-white/[0.02] border border-white/10 rounded-xl text-[#1F76F9]">
+          <div className="p-2.5 bg-[var(--color-info-bg)] border border-[var(--border)] rounded-[var(--radius-md)] text-[var(--color-primary-600)]">
             <Icon size={18} className="rtl:-scale-x-100" />
           </div>
         )}

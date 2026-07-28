@@ -13,6 +13,7 @@
     "@xyflow/react": "^12.11.2",
     "ai": "^7.0.37",
     "cheerio": "^1.2.0",
+    "framer-motion": "^12.42.2",
     "html-to-text": "^10.0.0",
     "lucide-react": "^1.26.0",
     "next": "16.2.11",
