@@ -9,6 +9,11 @@
   --animate-fade-in: fade-in 0.35s ease-out forwards;
   --animate-slide-up: slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-shimmer: shimmer 1.6s infinite linear;
+  --animate-pulse-glow: pulse-glow 2.8s ease-in-out infinite;
+  --animate-shake: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-aurora: aurora 18s ease-in-out infinite;
+  --animate-border-spin: border-spin 4s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes fade-in {
     from { opacity: 0; }
@@ -22,6 +27,35 @@
     from { background-position: -200% 0; }
     to { background-position: 200% 0; }
   }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary-600) 30%, transparent); }
+    50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-primary-600) 0%, transparent); }
+  }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+  }
+  @keyframes aurora {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    33% { transform: translate3d(3%, -4%, 0) rotate(4deg); }
+    66% { transform: translate3d(-3%, 3%, 0) rotate(-4deg); }
+  }
+  @keyframes border-spin {
+    from { --border-angle: 0deg; }
+    to { --border-angle: 360deg; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
 }
 
 @layer base {
@@ -34,6 +68,10 @@
     --color-primary-700: #1d4ed8; /* blue-700 */
     --color-primary-blue: #2563eb;
     --color-accent-600: #2563eb;
+
+    /* Warm accent (used for competitor / source highlights) */
+    --color-accent: #ea580c;      /* orange-600 */
+    --color-accent-bg: #ffedd5;   /* orange-100 */
 
     /* Surfaces */
     --background: #f8fafc;        /* slate-50 */
@@ -67,6 +105,7 @@
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
+    --radius-xl: 16px;
     --radius-full: 9999px;
 
     /* Soft, diffused enterprise shadows */
@@ -74,6 +113,17 @@
     --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04);
     --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.05);
     --shadow-lg: 0 12px 32px -6px rgba(15, 23, 42, 0.12), 0 6px 12px -4px rgba(15, 23, 42, 0.06);
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-blur: 16px;
+    --glass-highlight: rgba(255, 255, 255, 0.9);
+
+    /* Neumorphism */
+    --neu-bg: #eef2f7;
+    --neu-light: rgba(255, 255, 255, 0.9);
+    --neu-dark: rgba(148, 163, 184, 0.45);
 
     /* Motion */
     --motion-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -89,6 +139,9 @@
     --color-primary-700: #2563eb; /* blue-600 */
     --color-primary-blue: #3b82f6;
     --color-accent-600: #60a5fa;
+
+    --color-accent: #fb923c;      /* orange-400 */
+    --color-accent-bg: rgba(234, 88, 12, 0.16);
 
     --background: #020617;        /* slate-950 */
     --background-subtle: #0b1220;
@@ -117,6 +170,17 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 12px 32px -6px rgba(0, 0, 0, 0.6);
+
+    /* Glassmorphism */
+    --glass-bg: rgba(15, 23, 42, 0.55);
+    --glass-border: rgba(148, 163, 184, 0.14);
+    --glass-blur: 18px;
+    --glass-highlight: rgba(148, 163, 184, 0.25);
+
+    /* Neumorphism */
+    --neu-bg: #0f172a;
+    --neu-light: rgba(51, 65, 85, 0.55);
+    --neu-dark: rgba(2, 6, 23, 0.9);
   }
 }
 
@@ -134,7 +198,141 @@ body {
 }
 
 :lang(fa) {
-  line-height: 1.7;
+  line-height: 1.75;
+}
+
+/* =========================================================
+   ADVANCED DESIGN UTILITIES
+   ========================================================= */
+
+/* Glassmorphic surface */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), inset 0 1px 0 0 var(--glass-highlight);
+}
+
+.glass-strong {
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(160%);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 0 var(--glass-highlight);
+}
+
+/* Neumorphic surface (soft extruded) */
+.neu-surface {
+  background: var(--neu-bg);
+  box-shadow: 6px 6px 16px var(--neu-dark), -6px -6px 16px var(--neu-light);
+  border: 1px solid transparent;
+}
+.neu-inset {
+  background: var(--neu-bg);
+  box-shadow: inset 4px 4px 10px var(--neu-dark), inset -4px -4px 10px var(--neu-light);
+}
+
+/* Animated conic gradient border */
+.animated-border {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  z-index: 0;
+}
+.animated-border::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    var(--color-primary-600) 20%,
+    var(--color-accent) 40%,
+    transparent 60%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: var(--animate-border-spin);
+  z-index: -1;
+}
+
+/* Static gradient hairline border via mask */
+.gradient-border {
+  position: relative;
+  border-radius: var(--radius-lg);
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary-600) 55%, transparent), transparent 45%, color-mix(in srgb, var(--color-accent) 45%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Aurora animated background layer */
+.aurora-bg {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.aurora-bg::before,
+.aurora-bg::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.5;
+  z-index: -1;
+  will-change: transform;
+}
+.aurora-bg::before {
+  width: 45vw;
+  height: 45vw;
+  top: -12vw;
+  inset-inline-start: -8vw;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--color-primary-600) 60%, transparent), transparent 70%);
+  animation: var(--animate-aurora);
+}
+.aurora-bg::after {
+  width: 40vw;
+  height: 40vw;
+  bottom: -14vw;
+  inset-inline-end: -6vw;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--color-accent) 45%, transparent), transparent 70%);
+  animation: var(--animate-aurora);
+  animation-delay: -9s;
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(120deg, var(--text-primary), color-mix(in srgb, var(--color-primary-600) 70%, var(--text-primary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.text-gradient-brand {
+  background: linear-gradient(120deg, var(--color-primary-600), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Subtle dotted grid backdrop */
+.grid-backdrop {
+  background-image: radial-gradient(color-mix(in srgb, var(--text-muted) 28%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
 /* Shimmer skeleton utility */
@@ -163,4 +361,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-border::before,
+  .aurora-bg::before,
+  .aurora-bg::after {
+    animation: none;
+  }
 }

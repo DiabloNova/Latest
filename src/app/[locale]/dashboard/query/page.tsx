@@ -157,7 +157,7 @@ export default function RAGQueryPage() {
       {/* Title block */}
       <div>
         <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)] font-display flex items-center gap-2.5">
-          <Search className="text-[#1F76F9]" size={24} />
+          <Search className="text-[var(--color-primary-600)]" size={24} />
           <span>{strings.title}</span>
         </h1>
         <p className="text-sm text-[var(--text-secondary)] mt-1.5 max-w-3xl leading-relaxed">
@@ -168,17 +168,17 @@ export default function RAGQueryPage() {
       {/* Query Bar */}
       <form onSubmit={handleFormSubmit} className="relative flex items-center gap-2">
         <div className="relative flex-1">
-          <Search size={16} className={`absolute top-1/2 -translate-y-1/2 text-white/35 ${isRtl ? "right-4" : "left-4"}`} />
+          <Search size={16} className={`absolute top-1/2 -translate-y-1/2 text-[var(--text-muted)] ${isRtl ? "right-4" : "left-4"}`} />
           <input
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder={strings.inputPlaceholder}
             className={`
-              w-full py-3.5 text-xs rounded-2xl outline-none transition-all duration-300
-              bg-white/[0.02] text-white border border-white/10
-              focus:border-[#1F76F9] focus:ring-1 focus:ring-[#1F76F9]/30 focus:bg-white/[0.04]
-              placeholder:text-white/20 leading-normal
+              w-full py-3.5 text-xs rounded-[var(--radius-lg)] outline-none transition-all duration-300
+              glass-panel text-[var(--text-primary)]
+              focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary-600)_25%,transparent)]
+              placeholder:text-[var(--text-muted)] leading-normal
               ${isRtl ? "pr-11 pl-4" : "pl-11 pr-4"}
             `}
             disabled={isPending}
@@ -206,15 +206,15 @@ export default function RAGQueryPage() {
 
       {/* Query Error Box */}
       {queryError && (
-        <Card className="border border-red-500/20 bg-red-500/[0.02] shadow-lg animate-shake">
+        <Card className="border-[color-mix(in_srgb,var(--color-error)_35%,transparent)] bg-[var(--color-error-bg)] shadow-lg animate-shake">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-red-400 flex items-center gap-2">
+            <CardTitle className="text-xs font-bold text-[var(--color-error)] flex items-center gap-2">
               <AlertCircle size={14} />
               <span>{strings.errorTitle}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-1">
-            <p className="text-xs text-red-300 italic">
+            <p className="text-xs text-[var(--color-error)] italic">
               {queryError}
             </p>
           </CardContent>
@@ -225,8 +225,8 @@ export default function RAGQueryPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Sidebar History */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="border border-white/[0.06] bg-white/[0.01] backdrop-blur-md shadow-md">
-            <CardHeader className="pb-3 border-b border-white/5 flex flex-row items-center justify-between space-y-0 py-3">
+          <Card className="glass-panel shadow-md !p-0">
+            <CardHeader className="pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between space-y-0 p-4">
               <CardTitle className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-600)] flex items-center gap-1.5">
                 <History size={12} />
                 <span>{strings.historyTitle}</span>
@@ -235,7 +235,7 @@ export default function RAGQueryPage() {
                 <button
                   type="button"
                   onClick={handleClearHistory}
-                  className="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+                  className="text-[10px] text-[var(--color-error)] hover:opacity-80 transition-opacity flex items-center gap-1"
                 >
                   <Trash2 size={10} />
                   <span>{strings.clearHistory}</span>
@@ -258,11 +258,11 @@ export default function RAGQueryPage() {
                         handleQuery(item.question);
                       }}
                       className="
-                        w-full text-start p-2.5 rounded-lg text-[11px] transition-all duration-200
-                        hover:bg-white/[0.03] text-white/70 hover:text-white flex items-start gap-2 min-w-0
+                        w-full text-start p-2.5 rounded-[var(--radius-md)] text-[11px] transition-all duration-200
+                        hover:bg-[var(--muted-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-start gap-2 min-w-0
                       "
                     >
-                      <MessageSquare size={12} className="mt-0.5 text-white/30 flex-shrink-0" />
+                      <MessageSquare size={12} className="mt-0.5 text-[var(--text-muted)] flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate leading-normal">{item.question}</p>
                         <span className="text-[9px] text-[var(--text-muted)] mt-0.5 block">{item.timestamp}</span>
@@ -279,9 +279,9 @@ export default function RAGQueryPage() {
         <div className="lg:col-span-3">
           {!activeResult ? (
             /* Empty State */
-            <Card className="border border-white/5 bg-white/[0.01] backdrop-blur-md p-10 text-center flex flex-col items-center justify-center min-h-[350px]">
-              <div className="p-4 rounded-full bg-white/[0.02] border border-white/10 text-white/20 mb-4 animate-pulse-glow">
-                <Sparkles size={36} className="text-[#1F76F9]" />
+            <Card className="gradient-border glass-panel p-10 text-center flex flex-col items-center justify-center min-h-[350px]">
+              <div className="p-4 rounded-full bg-[var(--color-info-bg)] border border-[color-mix(in_srgb,var(--color-primary-600)_25%,transparent)] mb-4 animate-pulse-glow">
+                <Sparkles size={36} className="text-[var(--color-primary-600)]" />
               </div>
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-1.5">{strings.emptyStateTitle}</h3>
               <p className="text-xs text-[var(--text-secondary)] max-w-md leading-relaxed">{strings.emptyStateDesc}</p>
