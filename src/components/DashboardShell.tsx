@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
 import { Dropdown } from "@/components/Dropdown";
 import { Button } from "@/components/Button";
@@ -16,11 +18,13 @@ import {
   X,
   Sun,
   Moon,
-  Globe,
-  ChevronRight,
-  ChevronLeft,
+  Search,
   Database,
-  Search
+  Building2,
+  ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Languages,
 } from "lucide-react";
 
 interface DashboardShellProps {
@@ -34,37 +38,45 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeWorkspace, setActiveWorkspace] = useState("Enterprise Tehran Workspace");
+  const [activeWorkspace, setActiveWorkspace] = useState("Enterprise Tehran");
 
-  const navigationItems = [
-    { name: language === "fa" ? "بررسی اجمالی" : "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: language === "fa" ? "ورود اسناد" : "Document Ingestion", href: "/dashboard/ingestion", icon: Database },
-    { name: language === "fa" ? "جستجوی معنایی" : "RAG Query Sandbox", href: "/dashboard/query", icon: Search },
-    { name: language === "fa" ? "هوشمندی برند" : "Brand Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
-    { name: language === "fa" ? "کاوشگر موجودیت‌ها" : "Entity Explorer", href: "/dashboard/entities", icon: Network },
-    { name: language === "fa" ? "تحلیل رقابتی" : "Competitive Intel", href: "/dashboard/competitive", icon: Compass },
-    { name: language === "fa" ? "آنالیتیکس پیشرفته" : "Advanced Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  const navSections = [
+    {
+      title: language === "fa" ? "پایش" : "Platform",
+      items: [
+        { name: language === "fa" ? "داشبورد" : "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: language === "fa" ? "ورود اسناد" : "Document Ingestion", href: "/dashboard/ingestion", icon: Database },
+        { name: language === "fa" ? "جستجوی RAG" : "RAG Query", href: "/dashboard/query", icon: Search },
+        { name: language === "fa" ? "گراف دانش" : "Knowledge Graph", href: "/dashboard/entities", icon: Network },
+      ],
+    },
+    {
+      title: language === "fa" ? "هوشمندی" : "Intelligence",
+      items: [
+        { name: language === "fa" ? "هوشمندی برند" : "Brand Intelligence", href: "/dashboard/intelligence", icon: BrainCircuit },
+        { name: language === "fa" ? "تحلیل رقابتی" : "Competitive Intel", href: "/dashboard/competitive", icon: Compass },
+        { name: language === "fa" ? "آنالیتیکس" : "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      ],
+    },
   ];
 
   const workspaceDropdownItems = [
-    { label: "Enterprise Tehran Workspace", value: "tehran", onClick: () => setActiveWorkspace("Enterprise Tehran Workspace") },
-    { label: "Global EMEA Workspace", value: "emea", onClick: () => setActiveWorkspace("Global EMEA Workspace") },
-    { label: "GCC Regional Workspace", value: "gcc", onClick: () => setActiveWorkspace("GCC Regional Workspace") },
+    { label: "Enterprise Tehran", value: "tehran", onClick: () => setActiveWorkspace("Enterprise Tehran") },
+    { label: "Global EMEA", value: "emea", onClick: () => setActiveWorkspace("Global EMEA") },
+    { label: "GCC Regional", value: "gcc", onClick: () => setActiveWorkspace("GCC Regional") },
   ];
 
   const userDropdownItems = [
     { label: language === "fa" ? "پروفایل کاربری" : "My Profile", value: "profile" },
-    { label: language === "fa" ? "تنظیمات سیستم" : "Settings", value: "settings" },
-    { label: language === "fa" ? "خروج" : "Logout", value: "logout" },
+    { label: language === "fa" ? "تنظیمات" : "Settings", value: "settings" },
+    { label: language === "fa" ? "خروج" : "Sign out", value: "logout" },
   ];
 
   const toggleLanguage = () => {
     const newLang = language === "en" ? "fa" : "en";
     setLanguage(newLang);
-
     if (pathname) {
       const segments = pathname.split("/");
-      // segments[0] is "", segments[1] is the locale ("en" or "fa")
       if (segments[1] === "en" || segments[1] === "fa") {
         segments[1] = newLang;
         router.push(segments.join("/"));
@@ -74,239 +86,262 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
     }
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
+  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
+
+  const getLocalizedHref = (href: string) => `/${language}${href === "/" ? "" : href}`;
+
+  const isItemActive = (href: string) => {
+    const localizedHref = getLocalizedHref(href);
+    return pathname === localizedHref || (href !== "/dashboard" && pathname?.startsWith(localizedHref));
   };
 
-  // Helper to prepend the active locale to a navigation link
-  const getLocalizedHref = (href: string) => {
-    return `/${language}${href === "/" ? "" : href}`;
-  };
+  const Logo = ({ showText = true }: { showText?: boolean }) => (
+    <div className="flex items-center gap-2.5">
+      <div className="relative w-9 h-9 flex-shrink-0 rounded-[var(--radius-md)] overflow-hidden ring-1 ring-[var(--border)] bg-[var(--muted-surface)]">
+        <Image src="/logo-horse.png" alt="Brand logo" fill sizes="36px" className="object-contain p-0.5" priority />
+      </div>
+      {showText && (
+        <div className="flex flex-col leading-none">
+          <span className="font-bold text-sm text-[var(--text-primary)] tracking-tight">
+            {language === "fa" ? "هوش برند" : "BrandGraph"}
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)] font-medium">
+            {language === "fa" ? "پلتفرم هوشمندی" : "Intelligence Platform"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
+  const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
+    <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+      {navSections.map((section) => (
+        <div key={section.title} className="space-y-1">
+          {sidebarOpen && (
+            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              {section.title}
+            </p>
+          )}
+          {section.items.map((item) => {
+            const Icon = item.icon;
+            const active = isItemActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={getLocalizedHref(item.href)}
+                onClick={onNavigate}
+                title={!sidebarOpen ? item.name : undefined}
+                className={`group relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-colors duration-150 ${
+                  active
+                    ? "bg-[var(--color-info-bg)] text-[var(--color-primary-600)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--muted-surface)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="nav-active"
+                    className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-[var(--color-primary-600)]"
+                  />
+                )}
+                <Icon size={18} className="flex-shrink-0" />
+                {sidebarOpen && <span className="truncate">{item.name}</span>}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]" dir={direction}>
-      {/* HEADER ZONE */}
-      <header className="sticky top-0 z-40 h-16 w-full flex items-center justify-between px-4 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          {/* Mobile menu trigger */}
-          <button
-            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-            className="md:hidden p-2 hover:bg-[var(--card)] rounded-[var(--radius-sm)]"
-            aria-label="Toggle menu"
-          >
-            {mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+    <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)]" dir={direction}>
+      {/* DESKTOP SIDEBAR */}
+      <motion.aside
+        animate={{ width: sidebarOpen ? 256 : 76 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="hidden md:flex flex-col border-e border-[var(--border)] bg-[var(--sidebar)] sticky top-0 h-screen"
+      >
+        <div className="h-16 flex items-center px-4 border-b border-[var(--border)]">
+          <Logo showText={sidebarOpen} />
+        </div>
 
-          {/* Logo Mark */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--color-primary-700)] flex items-center justify-center text-white font-black text-lg tracking-wider shadow-sm">
-              AI
-            </div>
-            <span className="hidden sm:inline font-bold text-lg text-[var(--text-primary)]">
-              {language === "fa" ? "هوشمندی برند" : "BrandIntelligence"}
-            </span>
-          </div>
-
-          <span className="hidden md:inline h-5 w-px bg-[var(--border)] mx-2" />
-
-          {/* Workspace Selector */}
-          <div className="hidden md:block">
+        {/* Tenant switcher (sidebar) */}
+        {sidebarOpen && (
+          <div className="px-3 pt-4">
             <Dropdown
               trigger={
-                <Button variant="outline" size="sm" className="flex items-center gap-2 px-3 py-1 bg-[var(--card)] border-[var(--border)] font-semibold text-xs">
-                  <span>{activeWorkspace}</span>
-                  <span className="text-[var(--text-muted)] text-[8px]">▼</span>
-                </Button>
+                <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] hover:border-[var(--border-strong)] transition-colors">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <Building2 size={16} className="text-[var(--color-primary-600)] flex-shrink-0" />
+                    <span className="text-sm font-medium text-[var(--text-primary)] truncate">{activeWorkspace}</span>
+                  </span>
+                  <ChevronDown size={14} className="text-[var(--text-muted)] flex-shrink-0" />
+                </button>
               }
               items={workspaceDropdownItems}
             />
           </div>
-        </div>
+        )}
 
-        {/* Global actions and user configuration */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Cmd+K placeholder for UX validation */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-md)] text-xs text-[var(--text-muted)] w-60">
-            <Globe size={14} />
-            <span>{language === "fa" ? "جستجو با میانبر Cmd+K..." : "Search commands (Cmd+K)..."}</span>
-          </div>
+        <NavList />
 
-          {/* Quick toggle controls */}
-          <Button variant="ghost" size="sm" onClick={toggleTheme} className="p-2" aria-label="Toggle Theme">
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </Button>
-
-          <Button variant="ghost" size="sm" onClick={toggleLanguage} className="p-2 font-bold text-xs" aria-label="Toggle Language">
-            <div className="flex items-center gap-1.5">
-              <Globe size={16} />
-              <span className="uppercase">{language}</span>
+        {/* Quota card */}
+        {sidebarOpen && (
+          <div className="mx-3 mb-3 p-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted-surface)]">
+            <div className="flex items-center justify-between text-xs font-medium mb-2">
+              <span className="text-[var(--text-secondary)]">{language === "fa" ? "سهمیه کوئری" : "Query Quota"}</span>
+              <span className="text-[var(--color-primary-600)] font-semibold">72%</span>
             </div>
-          </Button>
-
-          {/* User Menu */}
-          <Dropdown
-            align="right"
-            trigger={
-              <button className="flex items-center gap-2 p-1.5 hover:bg-[var(--card)] rounded-[var(--radius-full)] transition-colors border border-[var(--border)]">
-                <div className="w-7 h-7 rounded-full bg-[var(--color-accent-600)] text-white flex items-center justify-center text-xs font-bold uppercase">
-                  U
-                </div>
-              </button>
-            }
-            items={userDropdownItems}
-          />
-        </div>
-      </header>
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* SIDEBAR NAVIGATION - DESKTOP */}
-        <aside
-          className={`hidden md:flex flex-col border-e border-[var(--border)] bg-[var(--background)] transition-all duration-300 ${
-            sidebarOpen ? "w-60" : "w-16"
-          }`}
-        >
-          {/* Navigation Area */}
-          <nav className="flex-1 py-4 px-2 space-y-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const localizedHref = getLocalizedHref(item.href);
-              const isActive = pathname === localizedHref || (item.href !== "/dashboard" && pathname?.startsWith(localizedHref));
-              return (
-                <Link
-                  key={item.href}
-                  href={localizedHref}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 ${
-                    isActive
-                      ? "bg-[var(--color-primary-700)] text-white font-medium shadow-sm"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  {sidebarOpen && <span className="truncate">{item.name}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Plan Quota indicators inside the sidebar bottom section */}
-          {sidebarOpen && (
-            <div className="p-4 border-t border-[var(--border)] bg-[var(--card)] mx-3 my-3 rounded-[var(--radius-md)] flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-[var(--text-secondary)]">{language === "fa" ? "سهمیه پایش مدل" : "Model Scans Quota"}</span>
-                <span className="text-[var(--color-accent-600)]">72%</span>
-              </div>
-              <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--color-accent-600)] rounded-full" style={{ width: "72%" }} />
-              </div>
-              <span className="text-[10px] text-[var(--text-muted)]">
-                {language === "fa" ? "۷,۲۰۰ از ۱۰,۰۰۰ کوئری" : "7,200 of 10,000 queries"}
-              </span>
+            <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
+              <div className="h-full bg-[var(--color-primary-600)] rounded-full" style={{ width: "72%" }} />
             </div>
-          )}
-
-          {/* Sidebar Collapse Toggle */}
-          <div className="p-3 border-t border-[var(--border)] flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1 hover:bg-[var(--card)]"
-            >
-              <span className="rtl:-scale-x-100 inline-block">
-                {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-              </span>
-            </Button>
+            <span className="mt-2 block text-[10px] text-[var(--text-muted)]">
+              {language === "fa" ? "۷,۲۰۰ از ۱۰,۰۰۰" : "7,200 of 10,000 queries"}
+            </span>
           </div>
-        </aside>
+        )}
 
-        {/* MOBILE SIDEBAR DRAWERS */}
+        {/* Collapse toggle */}
+        <div className="p-3 border-t border-[var(--border)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`w-full ${sidebarOpen ? "justify-start" : "justify-center"}`}
+          >
+            <span className="rtl:-scale-x-100 inline-flex">
+              {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+            </span>
+            {sidebarOpen && <span className="text-xs">{language === "fa" ? "جمع کردن" : "Collapse"}</span>}
+          </Button>
+        </div>
+      </motion.aside>
+
+      {/* MOBILE DRAWER */}
+      <AnimatePresence>
         {mobileSidebarOpen && (
-          <div className="fixed inset-0 z-50 md:hidden flex">
-            {/* Backdrop overlay */}
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+          <div className="fixed inset-0 z-50 md:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => setMobileSidebarOpen(false)}
             />
-
-            {/* Drawer Content */}
-            <aside
-              className={`relative w-64 max-w-sm bg-[var(--background)] h-full flex flex-col border-e border-[var(--border)] animate-in ${
-                direction === "rtl" ? "slide-in-from-right" : "slide-in-from-left"
-              } duration-200 z-10`}
+            <motion.aside
+              initial={{ x: direction === "rtl" ? 280 : -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: direction === "rtl" ? 280 : -280 }}
+              transition={{ type: "tween", duration: 0.25 }}
+              className="absolute inset-y-0 start-0 w-72 flex flex-col bg-[var(--sidebar)] border-e border-[var(--border)]"
             >
               <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border)]">
-                <span className="font-bold text-lg">{language === "fa" ? "منوی اصلی" : "Main Menu"}</span>
-                <Button variant="ghost" size="sm" onClick={() => setMobileSidebarOpen(false)} className="p-1">
-                  <X size={20} />
+                <Logo />
+                <Button variant="ghost" size="sm" onClick={() => setMobileSidebarOpen(false)} className="p-1.5">
+                  <X size={18} />
                 </Button>
               </div>
-
-              {/* Workspace Mobile Selection */}
-              <div className="p-4 border-b border-[var(--border)]">
+              <div className="px-3 pt-4">
                 <Dropdown
                   trigger={
-                    <Button variant="outline" size="sm" className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[var(--card)]">
-                      <span>{activeWorkspace}</span>
-                      <span className="text-[var(--text-muted)] text-[8px]">▼</span>
-                    </Button>
+                    <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)]">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Building2 size={16} className="text-[var(--color-primary-600)]" />
+                        <span className="text-sm font-medium text-[var(--text-primary)] truncate">{activeWorkspace}</span>
+                      </span>
+                      <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                    </button>
                   }
                   items={workspaceDropdownItems}
                 />
               </div>
-
-              <nav className="flex-1 py-4 px-2 space-y-1">
-                {navigationItems.map((item) => {
-                  const Icon = item.icon;
-                  const localizedHref = getLocalizedHref(item.href);
-                  const isActive = pathname === localizedHref || (item.href !== "/dashboard" && pathname?.startsWith(localizedHref));
-                  return (
-                    <Link
-                      key={item.href}
-                      href={localizedHref}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm transition-all duration-150 ${
-                        isActive
-                          ? "bg-[var(--color-primary-700)] text-white font-medium"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]"
-                      }`}
-                    >
-                      <Icon size={18} />
-                      <span>{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              <div className="p-4 border-t border-[var(--border)]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-accent-600)] text-white flex items-center justify-center font-bold">
-                    U
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">User Workspace</p>
-                    <p className="text-xs text-[var(--text-muted)]">tehran@brandintel.ai</p>
-                  </div>
-                </div>
-              </div>
-            </aside>
+              <NavList onNavigate={() => setMobileSidebarOpen(false)} />
+            </motion.aside>
           </div>
         )}
+      </AnimatePresence>
 
-        {/* WORKSPACE & CONTENT CONTAINER */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <div className="flex-1 p-4 md:p-6 lg:p-8">
-            {children}
+      {/* MAIN COLUMN */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* HEADER */}
+        <header className="sticky top-0 z-40 h-16 flex items-center justify-between gap-3 px-4 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--header)_85%,transparent)] backdrop-blur-md">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-2 -ms-1 rounded-[var(--radius-md)] hover:bg-[var(--muted-surface)] text-[var(--text-secondary)]"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+
+            {/* Search bar */}
+            <div className="relative hidden sm:flex items-center w-64 lg:w-80">
+              <Search size={16} className="absolute start-3 text-[var(--text-muted)] pointer-events-none" />
+              <input
+                type="search"
+                placeholder={language === "fa" ? "جستجو در اسناد و موجودیت‌ها..." : "Search documents, entities..."}
+                className="w-full ps-9 pe-16 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--muted-surface)] border border-transparent focus:border-[var(--border-strong)] focus:bg-[var(--card)] outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors"
+              />
+              <kbd className="absolute end-2.5 hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--card)] border border-[var(--border)] rounded">
+                ⌘K
+              </kbd>
+            </div>
           </div>
 
-          {/* GLOBAL STATUS BAR ZONE */}
-          <footer className="h-8 border-t border-[var(--border)] bg-[var(--card)] flex items-center justify-between px-4 text-[11px] text-[var(--text-muted)]">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={toggleLanguage} className="px-2" aria-label="Toggle language">
+              <Languages size={16} />
+              <span className="uppercase text-xs">{language}</span>
+            </Button>
+
+            <Button variant="ghost" size="sm" onClick={toggleTheme} className="p-2" aria-label="Toggle theme">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={theme}
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="inline-flex"
+                >
+                  {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+                </motion.span>
+              </AnimatePresence>
+            </Button>
+
+            <span className="hidden sm:inline h-6 w-px bg-[var(--border)] mx-1" />
+
+            <Dropdown
+              align="right"
+              trigger={
+                <button className="flex items-center gap-2 p-1 pe-2 rounded-[var(--radius-full)] hover:bg-[var(--muted-surface)] transition-colors">
+                  <span className="w-8 h-8 rounded-full bg-[var(--color-primary-600)] text-white flex items-center justify-center text-xs font-bold">
+                    U
+                  </span>
+                  <span className="hidden lg:flex flex-col items-start leading-none">
+                    <span className="text-xs font-semibold text-[var(--text-primary)]">User Admin</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">tehran@brandgraph.ai</span>
+                  </span>
+                  <ChevronDown size={14} className="hidden lg:inline text-[var(--text-muted)]" />
+                </button>
+              }
+              items={userDropdownItems}
+            />
+          </div>
+        </header>
+
+        {/* PAGE CONTENT */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">{children}</div>
+
+          <footer className="h-9 border-t border-[var(--border)] bg-[var(--card)] flex items-center justify-between px-4 text-[11px] text-[var(--text-muted)]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[var(--color-success)] animate-pulse" />
-              <span>{language === "fa" ? "تمام سیستم‌ها به صورت نرمال در حال کار هستند" : "All monitoring systems operational"}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
+              <span>{language === "fa" ? "همه سیستم‌ها عملیاتی" : "All systems operational"}</span>
             </div>
             <div className="hidden sm:flex items-center gap-4">
-              <span>{language === "fa" ? "همگام‌سازی: ۱ دقیقه پیش" : "DB Sync: 1m ago"}</span>
-              <span>{language === "fa" ? "نسخه فاز ۱ بومی" : "Phase 1 Iran Engine"}</span>
+              <span>{language === "fa" ? "همگام‌سازی: ۱ دقیقه پیش" : "Synced 1m ago"}</span>
+              <span>v2.4.0</span>
             </div>
           </footer>
         </main>

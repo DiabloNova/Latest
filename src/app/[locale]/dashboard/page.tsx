@@ -45,26 +45,26 @@ interface AnalyticsSummary {
 // Premium loading skeleton component for the full page
 const Skeleton = () => (
   <div className="space-y-6">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-pulse">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="space-y-2">
-        <div className="h-8 w-48 bg-white/5 rounded-xl" />
-        <div className="h-4 w-96 bg-white/5 rounded-lg" />
+        <div className="h-8 w-48 skeleton rounded-lg" />
+        <div className="h-4 w-96 max-w-full skeleton rounded" />
       </div>
-      <div className="h-10 w-36 bg-white/5 rounded-xl" />
+      <div className="h-10 w-36 skeleton rounded-[var(--radius-md)]" />
     </div>
 
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-28 bg-white/5 rounded-2xl animate-pulse" />
+        <div key={i} className="h-28 skeleton rounded-[var(--radius-lg)]" />
       ))}
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 h-[350px] bg-white/5 rounded-2xl animate-pulse" />
-      <div className="h-[350px] bg-white/5 rounded-2xl animate-pulse" />
+      <div className="lg:col-span-2 h-[350px] skeleton rounded-[var(--radius-lg)]" />
+      <div className="h-[350px] skeleton rounded-[var(--radius-lg)]" />
     </div>
 
-    <div className="h-[450px] bg-white/5 rounded-2xl animate-pulse" />
+    <div className="h-[450px] skeleton rounded-[var(--radius-lg)]" />
   </div>
 );
 
@@ -159,7 +159,7 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center space-y-6 animate-fade-in">
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full">
+        <div className="p-4 bg-[var(--color-error-bg)] border border-[color-mix(in_srgb,var(--color-error)_30%,transparent)] text-[var(--color-error)] rounded-full">
           <AlertCircle size={40} />
         </div>
         <div className="max-w-md space-y-2">
@@ -278,21 +278,21 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-5">
                   <table className="w-full text-start border-collapse">
                     <thead>
-                      <tr className="border-b border-white/5 text-[10px] text-[var(--text-muted)] font-bold uppercase bg-white/[0.01]">
-                        <th className="py-3 px-4 text-start">{isRtl ? "مدل" : "Engine"}</th>
-                        <th className="py-3 px-4 text-start">{isRtl ? "کوئری فرضی" : "Prompt Query"}</th>
-                        <th className="py-3 px-4 text-start">{isRtl ? "نوع ارجاع" : "Type"}</th>
-                        <th className="py-3 px-4 text-start">{isRtl ? "زمان" : "Occurred"}</th>
-                        <th className="py-3 px-4"></th>
+                      <tr className="border-y border-[var(--border)] text-[10px] text-[var(--text-muted)] font-semibold uppercase bg-[var(--muted-surface)]">
+                        <th className="py-2.5 px-4 text-start">{isRtl ? "مدل" : "Engine"}</th>
+                        <th className="py-2.5 px-4 text-start">{isRtl ? "کوئری فرضی" : "Prompt Query"}</th>
+                        <th className="py-2.5 px-4 text-start">{isRtl ? "نوع ارجاع" : "Type"}</th>
+                        <th className="py-2.5 px-4 text-start">{isRtl ? "زمان" : "Occurred"}</th>
+                        <th className="py-2.5 px-4"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 text-xs">
+                    <tbody className="divide-y divide-[var(--border)] text-xs">
                       {brandMetrics.recentCitations.map((cit) => (
-                        <tr key={cit.id} className="hover:bg-white/[0.01] transition-colors">
-                          <td className="py-3 px-4 font-bold text-[var(--text-primary)]">
+                        <tr key={cit.id} className="hover:bg-[var(--muted-surface)] transition-colors">
+                          <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">
                             {cit.engine}
                           </td>
                           <td className="py-3 px-4 text-[var(--text-secondary)] italic max-w-[200px] truncate">
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                               href={cit.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex p-1 text-[var(--text-muted)] hover:text-[#1F76F9] transition-colors"
+                              className="inline-flex p-1 text-[var(--text-muted)] hover:text-[var(--color-primary-600)] transition-colors"
                             >
                               <ExternalLink size={14} className="rtl:-scale-x-100" />
                             </a>
@@ -335,8 +335,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-3.5 rounded-[var(--radius-md)] bg-[var(--muted-surface)] border border-[var(--border)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] mt-1.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-bold text-[var(--text-primary)]">
                       {isRtl ? "افزودن اسکیما به صفحات فرود" : "Inject Schema on Product Pages"}
@@ -347,8 +347,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-3.5 rounded-[var(--radius-md)] bg-[var(--muted-surface)] border border-[var(--border)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)] mt-1.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-bold text-[var(--text-primary)]">
                       {isRtl ? "رفع خطای توکنایزر زبان فارسی" : "Address Hallucinated Claims"}
@@ -359,8 +359,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.01] border border-white/5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-3.5 rounded-[var(--radius-md)] bg-[var(--muted-surface)] border border-[var(--border)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary-600)] mt-1.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-bold text-[var(--text-primary)]">
                       {isRtl ? "به‌روزرسانی ساختار llms.txt" : "Publish structured llms.txt"}
@@ -426,7 +426,7 @@ export default function DashboardPage() {
             required
           />
 
-          <div className="flex items-center gap-3 justify-end pt-4 border-t border-white/5">
+          <div className="flex items-center gap-3 justify-end pt-4 border-t border-[var(--border)]">
             <Button variant="outline" type="button" onClick={() => setIsAddBrandOpen(false)}>
               {isRtl ? "انصراف" : "Cancel"}
             </Button>
