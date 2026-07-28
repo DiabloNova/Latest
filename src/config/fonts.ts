@@ -1,24 +1,25 @@
 /**
  * Optimus AI — Premium Persian Font Configuration
  *
- * Uses the custom "Peyda" typeface (local files in /public/fonts) for the
- * Persian/Farsi experience with a full weight range (Thin → Black).
- * Both the primary body font and the display/heading font are mapped to Peyda
- * so the entire product renders in a single, cohesive Persian typeface.
+ * Persian/Farsi typography pairing:
+ *  - "YekanBakh" (variable weights) drives all body / UI text for maximum
+ *    on-screen legibility.
+ *  - "Peyda" (Bold → Black) is reserved for display headings and titles,
+ *    giving the interface a strong, editorial character.
  */
 
 import localFont from "next/font/local";
 
 // ==========================================
-// PEYDA — Primary Persian typeface (body)
+// YEKAN BAKH — Primary body / UI typeface
 // ==========================================
 export const persianPrimary = localFont({
   src: [
-    { path: "../../public/fonts/Peyda-Thin.ttf", weight: "100", style: "normal" },
-    { path: "../../public/fonts/Peyda-Regular.ttf", weight: "400", style: "normal" },
-    { path: "../../public/fonts/Peyda-Medium.ttf", weight: "500", style: "normal" },
-    { path: "../../public/fonts/Peyda-Bold.ttf", weight: "700", style: "normal" },
-    { path: "../../public/fonts/Peyda-Black.ttf", weight: "900", style: "normal" },
+    { path: "../../public/fonts/YekanBakhFaNum-Light.woff2", weight: "300", style: "normal" },
+    { path: "../../public/fonts/YekanBakhFaNum-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../../public/fonts/YekanBakhFaNum-Regular.woff2", weight: "500", style: "normal" },
+    { path: "../../public/fonts/YekanBakhFaNum-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "../../public/fonts/YekanBakhFaNum-SemiBold.woff2", weight: "700", style: "normal" },
   ],
   variable: "--font-persian-primary",
   display: "swap",
@@ -26,11 +27,13 @@ export const persianPrimary = localFont({
 });
 
 // ==========================================
-// PEYDA — Display / heading typeface
+// PEYDA — Display / heading typeface (titles)
 // ==========================================
 export const persianDisplay = localFont({
   src: [
+    { path: "../../public/fonts/Peyda-Medium.ttf", weight: "500", style: "normal" },
     { path: "../../public/fonts/Peyda-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../../public/fonts/Peyda-ExtraBold.ttf", weight: "800", style: "normal" },
     { path: "../../public/fonts/Peyda-Black.ttf", weight: "900", style: "normal" },
   ],
   variable: "--font-persian-display",

@@ -198,7 +198,24 @@ body {
 }
 
 :lang(fa) {
-  line-height: 1.75;
+  line-height: 1.85;
+  letter-spacing: 0;
+}
+
+/* Peyda drives every display title across the product; YekanBakh (font-sans)
+   handles all body / UI copy. */
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+:lang(fa) h1,
+:lang(fa) h2,
+:lang(fa) h3,
+:lang(fa) h4,
+:lang(fa) h5,
+:lang(fa) h6 {
+  letter-spacing: 0;
 }
 
 /* =========================================================
@@ -363,10 +380,102 @@ body {
   background: var(--text-muted);
 }
 
+/* Glass variant of the animated conic border (transparent core) */
+.animated-border-glass {
+  position: relative;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  z-index: 0;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 0 var(--glass-highlight);
+}
+.animated-border-glass::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    var(--color-primary-600) 15%,
+    var(--color-accent) 32%,
+    color-mix(in srgb, var(--color-primary-600) 80%, white) 48%,
+    transparent 62%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: var(--animate-border-spin);
+  z-index: -1;
+}
+
+/* Soft lift on hover */
+.hover-lift {
+  transition: transform var(--motion-normal), box-shadow var(--motion-normal), border-color var(--motion-normal);
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Monochrome brand-logo mask (tints any SVG with currentColor) */
+.logo-mask {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/* Conic glow ring behind hero focal elements */
+.glow-ring {
+  position: relative;
+}
+.glow-ring::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--color-primary-600) 55%, transparent),
+    color-mix(in srgb, var(--color-accent) 45%, transparent),
+    color-mix(in srgb, var(--color-primary-600) 55%, transparent)
+  );
+  filter: blur(60px);
+  opacity: 0.45;
+  border-radius: 9999px;
+  animation: var(--animate-aurora);
+}
+
+/* Infinite marquee for the platform strip */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 26s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animated-border::before,
+  .animated-border-glass::before,
   .aurora-bg::before,
-  .aurora-bg::after {
+  .aurora-bg::after,
+  .glow-ring::after,
+  .marquee-track {
     animation: none;
   }
 }
