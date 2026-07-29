@@ -53,16 +53,19 @@ export default function RAGQueryPage() {
   const [isPending, startTransition] = useTransition();
   const [queryError, setQueryError] = useState<string | null>(null);
 
-  // Load history from localStorage on mount
+  // Load history from localStorage on mount - defer via setTimeout to avoid synchronous setState triggers
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("optimus_rag_query_history");
-      if (stored) {
-        setHistory(JSON.parse(stored) as HistoryItem[]);
+    const timer = setTimeout(() => {
+      try {
+        const stored = localStorage.getItem("optimus_rag_query_history");
+        if (stored) {
+          setHistory(JSON.parse(stored) as HistoryItem[]);
+        }
+      } catch (err) {
+        console.error("Failed to load query history:", err);
       }
-    } catch (err) {
-      console.error("Failed to load query history:", err);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Save history to localStorage
