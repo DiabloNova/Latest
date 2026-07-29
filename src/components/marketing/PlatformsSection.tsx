@@ -31,11 +31,11 @@ export function PlatformsSection() {
         </p>
 
         <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-          <div className="marquee-track gap-14 py-2" dir="ltr">
+          <div className="marquee-track py-2" dir="ltr">
             {loop.map((p, i) => (
               <span
                 key={`${p.slug}-${i}`}
-                className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+                className="mx-7 flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0"
               >
                 <BrandLogo slug={p.slug} label={p.label} className="h-7 w-7" />
                 <span className="text-sm font-semibold whitespace-nowrap">{p.label}</span>

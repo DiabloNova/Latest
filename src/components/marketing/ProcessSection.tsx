@@ -54,14 +54,17 @@ export function ProcessSection() {
             return (
               <div
                 key={i}
-                className="glass-panel hover-lift rounded-[var(--radius-xl)] p-7 flex flex-col gap-4"
+                className="neu-surface hover-lift rounded-[var(--radius-xl)] p-7 flex flex-col gap-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="grid place-items-center w-12 h-12 rounded-[var(--radius-lg)] neu-surface text-[var(--color-primary-600)]">
+                  <span className="grid place-items-center w-12 h-12 rounded-[var(--radius-lg)] neu-inset text-[var(--color-primary-600)]">
                     <Icon size={22} className="rtl:-scale-x-100" />
                   </span>
-                  <span className="font-display font-black text-4xl text-[color-mix(in_srgb,var(--text-muted)_45%,transparent)]">
-                    {isFa ? `۰${i + 1}` : `0${i + 1}`}
+                  <span
+                    dir="ltr"
+                    className="font-display font-black text-4xl text-[color-mix(in_srgb,var(--color-primary-600)_55%,transparent)]"
+                  >
+                    {`${i + 1}.`}
                   </span>
                 </div>
                 <div className="space-y-2">

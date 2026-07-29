@@ -52,20 +52,20 @@ export function HeroSection() {
 
           <h1 className="font-display font-black tracking-tight text-balance text-4xl sm:text-5xl md:text-6xl leading-[1.15]">
             <span className="text-[var(--text-primary)]">
-              {isFa ? "برند شما، " : "Your brand, "}
+              {isFa ? "ارتقای جایگاه دیجیتال شما، در " : "Elevating your digital presence in "}
             </span>
             <span className="text-gradient-brand">
-              {isFa ? "درست‌ روایت‌شده" : "correctly represented"}
+              {isFa ? "نسل جدید موتورهای جستجو" : "the new generation of search engines"}
             </span>
             <span className="text-[var(--text-primary)]">
-              {isFa ? " در عصر کشف هوش مصنوعی" : " in the AI discovery era"}
+              {isFa ? " و هوش مصنوعی" : " and AI"}
             </span>
           </h1>
 
           <p className="text-base md:text-lg text-[var(--text-secondary)] leading-relaxed max-w-xl mx-auto lg:mx-0 text-pretty">
             {isFa
-              ? "سنجش، محافظت و بهینه‌سازی نحوه‌ی ارجاع به محصولات، خدمات و مدیران شما در ChatGPT، Gemini، Claude و Perplexity — همه از یک داشبورد واحد."
-              : "Measure, protect, and optimize how your products, services, and executives are referenced across ChatGPT, Gemini, Claude, and Perplexity — from a single dashboard."}
+              ? "ما با ارائه راهکارهای یکپارچه بهینه‌سازی سایت (SEO) و موتورهای پاسخگو (AEO)، شما را به اولین انتخاب مخاطبان تبدیل می‌کنیم."
+              : "With integrated Search (SEO) and Answer Engine (AEO) optimization, we make your brand the first choice for your audience."}
           </p>
 
           <div className="flex flex-wrap gap-3 justify-center lg:justify-start">

@@ -226,6 +226,10 @@
     --neu-bg: #eef2f7;
     --neu-light: rgba(255, 255, 255, 0.9);
     --neu-dark: rgba(148, 163, 184, 0.45);
+
+    /* Deeper gradient in light mode so white button text stays legible */
+    --gradient-primary: linear-gradient(135deg, var(--sky-blue-700) 0%, var(--orange-600) 100%);
+    --gradient-sky: linear-gradient(135deg, var(--sky-blue-700) 0%, var(--sky-blue-600) 100%);
   }
 }
 
@@ -572,6 +576,51 @@ input:focus, textarea:focus {
   mask-composite: exclude;
   animation: var(--animate-border-spin);
   z-index: -1;
+}
+
+/* Highly-polished animated feature icon badge */
+.feature-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  background: var(--gradient-primary);
+  box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--color-primary-600) 60%, transparent);
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 420ms ease;
+  isolation: isolate;
+}
+.feature-icon::before {
+  content: "";
+  position: absolute;
+  inset: -2.5px;
+  border-radius: inherit;
+  padding: 2.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    color-mix(in srgb, #fff 85%, transparent) 18%,
+    transparent 42%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: var(--animate-border-spin);
+  z-index: -1;
+}
+.feature-icon svg {
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .feature-icon {
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 16px 32px -8px color-mix(in srgb, var(--color-primary-600) 72%, transparent);
+}
+.group:hover .feature-icon svg {
+  transform: rotate(-8deg) scale(1.08);
 }
 
 /* Soft lift on hover */
