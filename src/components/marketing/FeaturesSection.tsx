@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Cpu, Globe, ShieldCheck, LineChart, Network, Radar } from "lucide-react";
+import { BrainCircuit, Sparkles, ShieldCheck, Waypoints, TrendingUp, Radar } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
 /**
@@ -15,8 +15,7 @@ export function FeaturesSection() {
 
   const features = [
     {
-      icon: Cpu,
-      surface: "animated-border-glass",
+      icon: BrainCircuit,
       span: "md:col-span-2",
       title: isFa ? "بهینه‌سازی موتور مولد (GEO)" : "Generative Engine Optimization",
       desc: isFa
@@ -24,8 +23,7 @@ export function FeaturesSection() {
         : "Systematically track and optimize your brand footprint inside RAG pipelines so you surface in model outputs.",
     },
     {
-      icon: Globe,
-      surface: "glass-panel",
+      icon: Sparkles,
       span: "",
       title: isFa ? "بهینه‌سازی موتور پاسخ (AEO)" : "Answer Engine Optimization",
       desc: isFa
@@ -34,7 +32,6 @@ export function FeaturesSection() {
     },
     {
       icon: ShieldCheck,
-      surface: "glass-panel",
       span: "",
       title: isFa ? "محافظت در برابر توهم" : "Hallucination protection",
       desc: isFa
@@ -42,8 +39,7 @@ export function FeaturesSection() {
         : "Get alerted the instant language models output factual inaccuracies about your company.",
     },
     {
-      icon: Network,
-      surface: "neu-surface",
+      icon: Waypoints,
       span: "",
       title: isFa ? "گراف دانش برند" : "Brand knowledge graph",
       desc: isFa
@@ -51,8 +47,7 @@ export function FeaturesSection() {
         : "See how entities, products, and executives relate inside a live, explorable graph.",
     },
     {
-      icon: LineChart,
-      surface: "glass-panel",
+      icon: TrendingUp,
       span: "",
       title: isFa ? "تحلیل احساسات و روند" : "Sentiment & trend analytics",
       desc: isFa
@@ -61,7 +56,6 @@ export function FeaturesSection() {
     },
     {
       icon: Radar,
-      surface: "animated-border-glass",
       span: "md:col-span-2",
       title: isFa ? "رصد رقبا" : "Competitive radar",
       desc: isFa
@@ -95,9 +89,9 @@ export function FeaturesSection() {
             return (
               <article
                 key={i}
-                className={`${f.surface} ${f.span} hover-lift rounded-[var(--radius-xl)] p-6 md:p-7 flex flex-col gap-4`}
+                className={`group animated-border-glass ${f.span} hover-lift rounded-[var(--radius-xl)] p-6 md:p-7 flex flex-col gap-4`}
               >
-                <span className="grid place-items-center w-12 h-12 rounded-[var(--radius-lg)] bg-[color-mix(in_srgb,var(--color-primary-600)_12%,transparent)] text-[var(--color-primary-600)] border border-[color-mix(in_srgb,var(--color-primary-600)_22%,transparent)]">
+                <span className="feature-icon">
                   <Icon size={22} className="rtl:-scale-x-100" />
                 </span>
                 <div className="space-y-2">

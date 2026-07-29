@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
   // We add a subtle shimmer effect on hover for the primary variant
   const variants = {
     primary: `
-      bg-[var(--gradient-primary)] text-white shadow-[0_4px_14px_rgba(14,165,233,0.3)]
+      bg-[image:var(--gradient-primary)] text-white shadow-[0_4px_14px_rgba(14,165,233,0.3)]
       border border-transparent
       before:absolute before:top-0 before:-left-full before:w-full before:h-full
       before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent
