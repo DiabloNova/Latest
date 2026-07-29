@@ -31,6 +31,90 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
+// Helper types for lists
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ size: number; className?: string }>;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+// 1. Static Sub-Component: Brand Logo (extracted from render loop to conform to ESLint and prevent reset state issues)
+const Logo = ({ language, showText = true }: { language: "en" | "fa"; showText?: boolean }) => (
+  <div className="flex items-center gap-2.5">
+    <div className="relative w-9 h-9 flex-shrink-0 rounded-[var(--radius-md)] overflow-hidden ring-1 ring-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-md">
+      <Image src="/logo-horse.png" alt="Brand logo" fill sizes="36px" className="object-contain p-0.5" priority />
+    </div>
+    {showText && (
+      <div className="flex flex-col leading-none">
+        <span className="font-bold text-sm text-[var(--text-primary)] tracking-tight">
+          {language === "fa" ? "هوش برند" : "BrandGraph"}
+        </span>
+        <span className="text-[10px] text-[var(--text-muted)] font-medium">
+          {language === "fa" ? "پلتفرم هوشمندی" : "Intelligence Platform"}
+        </span>
+      </div>
+    )}
+  </div>
+);
+
+// 2. Static Sub-Component: Navigation List (extracted from render loop)
+const NavList = ({
+  navSections,
+  sidebarOpen,
+  isItemActive,
+  getLocalizedHref,
+  onNavigate,
+}: {
+  navSections: NavSection[];
+  sidebarOpen: boolean;
+  isItemActive: (href: string) => boolean;
+  getLocalizedHref: (href: string) => string;
+  onNavigate?: () => void;
+}) => (
+  <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+    {navSections.map((section) => (
+      <div key={section.title} className="space-y-1">
+        {sidebarOpen && (
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {section.title}
+          </p>
+        )}
+        {section.items.map((item) => {
+          const Icon = item.icon;
+          const active = isItemActive(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={getLocalizedHref(item.href)}
+              onClick={onNavigate}
+              title={!sidebarOpen ? item.name : undefined}
+              className={`group relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-colors duration-150 ${
+                active
+                  ? "bg-[var(--color-info-bg)] text-[var(--color-primary-600)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--muted-surface)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="nav-active"
+                  className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-[var(--color-primary-600)]"
+                />
+              )}
+              <Icon size={18} className="flex-shrink-0" />
+              {sidebarOpen && <span className="truncate">{item.name}</span>}
+            </Link>
+          );
+        })}
+      </div>
+    ))}
+  </nav>
+);
+
 export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,7 +124,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState("Enterprise Tehran");
 
-  const navSections = [
+  const navSections: NavSection[] = [
     {
       title: language === "fa" ? "پایش" : "Platform",
       items: [
@@ -95,74 +179,22 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
     return pathname === localizedHref || (href !== "/dashboard" && pathname?.startsWith(localizedHref));
   };
 
-  const Logo = ({ showText = true }: { showText?: boolean }) => (
-    <div className="flex items-center gap-2.5">
-      <div className="relative w-9 h-9 flex-shrink-0 rounded-[var(--radius-md)] overflow-hidden ring-1 ring-[var(--border)] bg-[var(--muted-surface)]">
-        <Image src="/logo-horse.png" alt="Brand logo" fill sizes="36px" className="object-contain p-0.5" priority />
-      </div>
-      {showText && (
-        <div className="flex flex-col leading-none">
-          <span className="font-bold text-sm text-[var(--text-primary)] tracking-tight">
-            {language === "fa" ? "هوش برند" : "BrandGraph"}
-          </span>
-          <span className="text-[10px] text-[var(--text-muted)] font-medium">
-            {language === "fa" ? "پلتفرم هوشمندی" : "Intelligence Platform"}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-
-  const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-      {navSections.map((section) => (
-        <div key={section.title} className="space-y-1">
-          {sidebarOpen && (
-            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              {section.title}
-            </p>
-          )}
-          {section.items.map((item) => {
-            const Icon = item.icon;
-            const active = isItemActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={getLocalizedHref(item.href)}
-                onClick={onNavigate}
-                title={!sidebarOpen ? item.name : undefined}
-                className={`group relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-colors duration-150 ${
-                  active
-                    ? "bg-[var(--color-info-bg)] text-[var(--color-primary-600)]"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--muted-surface)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-[var(--color-primary-600)]"
-                  />
-                )}
-                <Icon size={18} className="flex-shrink-0" />
-                {sidebarOpen && <span className="truncate">{item.name}</span>}
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </nav>
-  );
-
   return (
-    <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)]" dir={direction}>
-      {/* DESKTOP SIDEBAR */}
+    <div className="min-h-screen flex bg-transparent text-[var(--foreground)] relative overflow-hidden" dir={direction}>
+      {/* 4. Ambient Background Orbs */}
+      <div className="ambient-bg">
+        <div className="ambient-orb orb-1" />
+        <div className="ambient-orb orb-2" />
+      </div>
+
+      {/* DESKTOP SIDEBAR - Standard glassmorphic treatment */}
       <motion.aside
         animate={{ width: sidebarOpen ? 256 : 76 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="hidden md:flex flex-col border-e border-[var(--border)] bg-[var(--sidebar)] sticky top-0 h-screen"
+        className="hidden md:flex flex-col border-e border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] shadow-[var(--glass-shadow)] sticky top-0 h-screen z-30"
       >
-        <div className="h-16 flex items-center px-4 border-b border-[var(--border)]">
-          <Logo showText={sidebarOpen} />
+        <div className="h-16 flex items-center px-4 border-b border-[var(--glass-border)]">
+          <Logo language={language} showText={sidebarOpen} />
         </div>
 
         {/* Tenant switcher (sidebar) */}
@@ -170,7 +202,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
           <div className="px-3 pt-4">
             <Dropdown
               trigger={
-                <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] hover:border-[var(--border-strong)] transition-colors">
+                <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-[var(--sky-blue-500)]/35 transition-colors shadow-sm">
                   <span className="flex items-center gap-2 min-w-0">
                     <Building2 size={16} className="text-[var(--color-primary-600)] flex-shrink-0" />
                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">{activeWorkspace}</span>
@@ -183,17 +215,22 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
           </div>
         )}
 
-        <NavList />
+        <NavList
+          navSections={navSections}
+          sidebarOpen={sidebarOpen}
+          isItemActive={isItemActive}
+          getLocalizedHref={getLocalizedHref}
+        />
 
         {/* Quota card */}
         {sidebarOpen && (
-          <div className="mx-3 mb-3 p-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--muted-surface)]">
+          <div className="mx-3 mb-3 p-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-md">
             <div className="flex items-center justify-between text-xs font-medium mb-2">
               <span className="text-[var(--text-secondary)]">{language === "fa" ? "سهمیه کوئری" : "Query Quota"}</span>
               <span className="text-[var(--color-primary-600)] font-semibold">72%</span>
             </div>
             <div className="h-1.5 w-full bg-[var(--border)] rounded-full overflow-hidden">
-              <div className="h-full bg-[var(--color-primary-600)] rounded-full" style={{ width: "72%" }} />
+              <div className="h-full bg-gradient-to-r from-[var(--sky-blue-500)] to-[var(--orange-500)] rounded-full" style={{ width: "72%" }} />
             </div>
             <span className="mt-2 block text-[10px] text-[var(--text-muted)]">
               {language === "fa" ? "۷,۲۰۰ از ۱۰,۰۰۰" : "7,200 of 10,000 queries"}
@@ -202,7 +239,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
         )}
 
         {/* Collapse toggle */}
-        <div className="p-3 border-t border-[var(--border)]">
+        <div className="p-3 border-t border-[var(--glass-border)]">
           <Button
             variant="ghost"
             size="sm"
@@ -233,10 +270,10 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               animate={{ x: 0 }}
               exit={{ x: direction === "rtl" ? 280 : -280 }}
               transition={{ type: "tween", duration: 0.25 }}
-              className="absolute inset-y-0 start-0 w-72 flex flex-col bg-[var(--sidebar)] border-e border-[var(--border)]"
+              className="absolute inset-y-0 start-0 w-72 flex flex-col bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] border-e border-[var(--glass-border)] shadow-xl"
             >
-              <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border)]">
-                <Logo />
+              <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--glass-border)]">
+                <Logo language={language} />
                 <Button variant="ghost" size="sm" onClick={() => setMobileSidebarOpen(false)} className="p-1.5">
                   <X size={18} />
                 </Button>
@@ -244,7 +281,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               <div className="px-3 pt-4">
                 <Dropdown
                   trigger={
-                    <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)]">
+                    <button className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
                       <span className="flex items-center gap-2 min-w-0">
                         <Building2 size={16} className="text-[var(--color-primary-600)]" />
                         <span className="text-sm font-medium text-[var(--text-primary)] truncate">{activeWorkspace}</span>
@@ -255,7 +292,13 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
                   items={workspaceDropdownItems}
                 />
               </div>
-              <NavList onNavigate={() => setMobileSidebarOpen(false)} />
+              <NavList
+                navSections={navSections}
+                sidebarOpen={true}
+                isItemActive={isItemActive}
+                getLocalizedHref={getLocalizedHref}
+                onNavigate={() => setMobileSidebarOpen(false)}
+              />
             </motion.aside>
           </div>
         )}
@@ -264,7 +307,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
       {/* MAIN COLUMN */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* HEADER */}
-        <header className="sticky top-0 z-40 h-16 flex items-center justify-between gap-3 px-4 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--header)_85%,transparent)] backdrop-blur-md">
+        <header className="sticky top-0 z-40 h-16 flex items-center justify-between gap-3 px-4 border-b border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] shadow-[var(--glass-shadow)]">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -280,9 +323,9 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               <input
                 type="search"
                 placeholder={language === "fa" ? "جستجو در اسناد و موجودیت‌ها..." : "Search documents, entities..."}
-                className="w-full ps-9 pe-16 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--muted-surface)] border border-transparent focus:border-[var(--border-strong)] focus:bg-[var(--card)] outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors"
+                className="w-full ps-9 pe-16 py-2 text-sm rounded-xl bg-white/[0.03] border border-[var(--glass-border)] focus:border-[var(--sky-blue-500)]/40 focus:bg-white/[0.05] outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors"
               />
-              <kbd className="absolute end-2.5 hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--card)] border border-[var(--border)] rounded">
+              <kbd className="absolute end-2.5 hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded">
                 ⌘K
               </kbd>
             </div>
@@ -309,13 +352,13 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
               </AnimatePresence>
             </Button>
 
-            <span className="hidden sm:inline h-6 w-px bg-[var(--border)] mx-1" />
+            <span className="hidden sm:inline h-6 w-px bg-[var(--glass-border)] mx-1" />
 
             <Dropdown
               align="right"
               trigger={
                 <button className="flex items-center gap-2 p-1 pe-2 rounded-[var(--radius-full)] hover:bg-[var(--muted-surface)] transition-colors">
-                  <span className="w-8 h-8 rounded-full bg-[var(--color-primary-600)] text-white flex items-center justify-center text-xs font-bold">
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--sky-blue-500)] to-[var(--orange-500)] text-white flex items-center justify-center text-xs font-bold">
                     U
                   </span>
                   <span className="hidden lg:flex flex-col items-start leading-none">
@@ -332,9 +375,9 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">{children}</div>
+          <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full relative z-10">{children}</div>
 
-          <footer className="h-9 border-t border-[var(--border)] bg-[var(--card)] flex items-center justify-between px-4 text-[11px] text-[var(--text-muted)]">
+          <footer className="h-9 border-t border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] flex items-center justify-between px-4 text-[11px] text-[var(--text-muted)] mt-auto">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
               <span>{language === "fa" ? "همه سیستم‌ها عملیاتی" : "All systems operational"}</span>
