@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.24",
+    "@mendable/firecrawl-js": "^4.31.1",
     "@xyflow/react": "^12.11.2",
     "ai": "^7.0.37",
     "cheerio": "^1.2.0",
