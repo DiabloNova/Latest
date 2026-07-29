@@ -20,6 +20,7 @@ import { KnowledgeGraphExplorer } from "@/components/features/graph/KnowledgeGra
 import { IngestionForm } from "@/components/features/ingestion/IngestionForm";
 import { BrandIntelligenceChat } from "@/components/features/rag/BrandIntelligenceChat";
 import { AeoAuditPanel } from "@/components/features/audit/AeoAuditPanel";
+import { FreeAuditPanel } from "@/components/features/audit/FreeAuditPanel";
 import { intelligenceService } from "@/services/intelligence";
 import { BrandHealthMetrics } from "@/schemas/intelligence";
 
@@ -88,6 +89,9 @@ export default function DashboardPage() {
   const [newBrandName, setNewBrandName] = useState("");
   const [newBrandDomain, setNewBrandDomain] = useState("");
 
+  // Control active tab dynamically to support redirection from Free Audit Panel Upsell
+  const [activeTab, setActiveTab] = useState("overview");
+
   useEffect(() => {
     if (session.status !== "authenticated") return;
 
@@ -155,6 +159,10 @@ export default function DashboardPage() {
 
   const handleRetry = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleUpgradeRedirect = () => {
+    setActiveTab("audit");
   };
 
   if (error) {
@@ -245,6 +253,11 @@ export default function DashboardPage() {
           </div>
         </div>
       ),
+    },
+    {
+      id: "free-audit",
+      label: isRtl ? "ممیزی رایگان" : "Free SEO Audit",
+      content: <FreeAuditPanel onUpgradeClick={handleUpgradeRedirect} />,
     },
     {
       id: "audit",
@@ -408,7 +421,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Tabbed Layout Container */}
-      <Tabs tabs={dashboardTabs} defaultTabId="overview" />
+      <Tabs tabs={dashboardTabs} activeTabId={activeTab} onTabChange={setActiveTab} />
 
       {/* REGISTER BRAND DIALOG */}
       <Dialog
