@@ -19,6 +19,7 @@ import { KnowledgeGraphExplorer } from "@/components/features/graph/KnowledgeGra
 // Existing Components
 import { IngestionForm } from "@/components/features/ingestion/IngestionForm";
 import { BrandIntelligenceChat } from "@/components/features/rag/BrandIntelligenceChat";
+import { AeoAuditPanel } from "@/components/features/audit/AeoAuditPanel";
 import { intelligenceService } from "@/services/intelligence";
 import { BrandHealthMetrics } from "@/schemas/intelligence";
 
@@ -244,6 +245,11 @@ export default function DashboardPage() {
           </div>
         </div>
       ),
+    },
+    {
+      id: "audit",
+      label: isRtl ? "ممیزی و بینش" : "Audit & Insights",
+      content: <AeoAuditPanel />,
     },
     {
       id: "tools",
