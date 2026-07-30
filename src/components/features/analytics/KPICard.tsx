@@ -13,6 +13,7 @@ interface KPICardProps {
   delay?: number;
 }
 
+// توجه: از export معمولی (Named Export) استفاده می‌کنیم تا با import داشبورد هماهنگ باشد
 export function KPICard({
   title,
   value,
