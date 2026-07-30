@@ -110,11 +110,11 @@ export const BrandIntelligenceChat: React.FC = () => {
   };
 
   return (
-    <Card className="flex flex-col h-[520px] max-h-[520px] animate-fade-in">
-      <CardHeader className="border-b border-white/[0.06] pb-3">
+    <Card className="flex flex-col h-[520px] max-h-[520px] animate-fade-in overflow-hidden !p-0">
+      <CardHeader className="border-b border-[var(--border)] p-4 bg-[var(--muted-surface)]/40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[#1F76F9] animate-pulse-glow">
+            <div className="p-2 bg-[var(--color-info-bg)] border border-[color-mix(in_srgb,var(--color-primary-600)_25%,transparent)] rounded-[var(--radius-md)] text-[var(--color-primary-600)] animate-pulse-glow">
               <MessageSquare size={18} />
             </div>
             <div>
@@ -128,7 +128,7 @@ export const BrandIntelligenceChat: React.FC = () => {
           </div>
 
           <Badge variant="success" className="text-[10px] gap-1 py-0.5">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="w-1.5 h-1.5 bg-[var(--color-success)] rounded-full animate-pulse" />
             <span>{language === "fa" ? "پایگاه داده زنده" : "Vector DB Connected"}</span>
           </Badge>
         </div>
@@ -157,8 +157,8 @@ export const BrandIntelligenceChat: React.FC = () => {
                   px-4 py-3 rounded-2xl text-xs leading-relaxed transition-all duration-300
                   ${
                     msg.role === "user"
-                      ? "bg-gradient-to-r from-[#1F76F9] to-[#1F76F9]/80 text-white rounded-br-none shadow-[0_4px_16px_rgba(31,118,249,0.25)]"
-                      : "bg-white/[0.03] text-white/90 border border-white/[0.08] rounded-bl-none backdrop-blur-sm"
+                      ? "bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white rounded-br-none shadow-[0_6px_20px_-4px_color-mix(in_srgb,var(--color-primary-600)_45%,transparent)]"
+                      : "glass-panel text-[var(--text-primary)] rounded-bl-none"
                   }
                 `}
               >
@@ -166,12 +166,12 @@ export const BrandIntelligenceChat: React.FC = () => {
               </div>
 
               {/* Time / Metadata badge */}
-              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-white/40 px-1">
+              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-[var(--text-muted)] px-1">
                 <span>{msg.timestamp}</span>
                 {msg.confidence !== undefined && (
                   <>
                     <span>•</span>
-                    <span className="font-bold text-[#79ADFB]">
+                    <span className="font-bold text-[var(--color-primary-600)]">
                       {language === "fa" ? "میزان همبستگی: " : "RAG Alignment: "}
                       {(msg.confidence * 100).toFixed(0)}%
                     </span>
@@ -185,7 +185,7 @@ export const BrandIntelligenceChat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveSourceId(activeSourceId === msg.id ? null : msg.id)}
-                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#79ADFB] hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] transition-colors"
                   >
                     <BookOpen size={11} />
                     <span>
@@ -196,18 +196,18 @@ export const BrandIntelligenceChat: React.FC = () => {
                   </button>
 
                   {activeSourceId === msg.id && (
-                    <div className="grid grid-cols-1 gap-2 p-2.5 rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-md animate-fade-in">
+                    <div className="grid grid-cols-1 gap-2 p-2.5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--muted-surface)]/50 backdrop-blur-md animate-fade-in">
                       {msg.sources.map((source, index) => (
                         <div
                           key={source.id}
-                          className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] space-y-1.5"
+                          className="p-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--card)] space-y-1.5"
                         >
                           <div className="flex items-center justify-between text-[9px]">
-                            <span className="font-bold text-[#FF6F41]">
+                            <span className="font-bold text-[var(--color-accent)]">
                               {language === "fa" ? `[منبع ${index + 1}] شناسه: ${source.id.substring(0, 8)}...` : `[Source ${index + 1}] ID: ${source.id.substring(0, 8)}...`}
                             </span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-white/45">
+                              <span className="text-[var(--text-muted)]">
                                 {language === "fa" ? "همبستگی معنایی:" : "Score:"}
                                 {` ${(source.similarityScore * 100).toFixed(0)}%`}
                               </span>
@@ -221,7 +221,7 @@ export const BrandIntelligenceChat: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          <p className="text-[10px] text-white/70 leading-relaxed italic">
+                          <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed italic">
                             &ldquo;{source.content}&rdquo;
                           </p>
                         </div>
@@ -236,11 +236,11 @@ export const BrandIntelligenceChat: React.FC = () => {
 
         {/* Pulse glowing loading indicator */}
         {isLoading && (
-          <div className="flex flex-col max-w-[85%] me-auto items-start animate-pulse">
-            <div className="px-4 py-3 rounded-2xl bg-white/[0.02] border border-white/5 text-white/50 rounded-bl-none text-xs flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-[#1F76F9] rounded-full animate-ping" />
-              <span className="w-1.5 h-1.5 bg-[#1F76F9] rounded-full animate-ping" style={{ animationDelay: "0.2s" }} />
-              <span className="w-1.5 h-1.5 bg-[#1F76F9] rounded-full animate-ping" style={{ animationDelay: "0.4s" }} />
+          <div className="flex flex-col max-w-[85%] me-auto items-start">
+            <div className="px-4 py-3 rounded-2xl glass-panel text-[var(--text-secondary)] rounded-bl-none text-xs flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-[var(--color-primary-600)] rounded-full animate-ping" />
+              <span className="w-1.5 h-1.5 bg-[var(--color-primary-600)] rounded-full animate-ping" style={{ animationDelay: "0.2s" }} />
+              <span className="w-1.5 h-1.5 bg-[var(--color-primary-600)] rounded-full animate-ping" style={{ animationDelay: "0.4s" }} />
               <span>{language === "fa" ? "در حال بازیابی اطلاعات و پردازش پاسخ..." : "Retrieving contexts..."}</span>
             </div>
           </div>
@@ -248,7 +248,7 @@ export const BrandIntelligenceChat: React.FC = () => {
 
         {/* Local Error feedback */}
         {error && (
-          <div className="p-3.5 rounded-xl border border-red-500/10 bg-red-500/5 text-red-400 text-xs flex items-start gap-2 animate-shake">
+          <div className="p-3.5 rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--color-error)_30%,transparent)] bg-[var(--color-error-bg)] text-[var(--color-error)] text-xs flex items-start gap-2 animate-shake">
             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
             <p>{error}</p>
           </div>
@@ -260,7 +260,7 @@ export const BrandIntelligenceChat: React.FC = () => {
       {/* Input query form */}
       <form
         onSubmit={handleSendMessage}
-        className="p-3 border-t border-white/[0.06] bg-white/[0.01] flex items-center gap-2"
+        className="p-3 border-t border-[var(--border)] bg-[var(--muted-surface)]/40 flex items-center gap-2"
       >
         <input
           type="text"
@@ -272,10 +272,10 @@ export const BrandIntelligenceChat: React.FC = () => {
               : "Type your brand visibility question..."
           }
           className="
-            flex-1 px-4 py-2.5 text-xs rounded-xl outline-none transition-all duration-300
-            bg-white/[0.02] text-white border border-white/10
-            focus:border-[#1F76F9] focus:ring-1 focus:ring-[#1F76F9]/30 focus:bg-white/[0.04]
-            placeholder:text-white/30
+            flex-1 px-4 py-2.5 text-xs rounded-[var(--radius-md)] outline-none transition-all duration-300
+            bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)]
+            focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary-600)_25%,transparent)]
+            placeholder:text-[var(--text-muted)]
           "
           disabled={isLoading}
         />

@@ -42,10 +42,7 @@ const originalQuery = Pool.prototype.query;
     };
     mockEmbeddingsStore.push(newRecord);
 
-    return {
-      rowCount: 1,
-      rows: [newRecord]
-    };
+    return { rowCount: 1, rows: [newRecord] };
   }
 
   // 2. kg_entities SELECT case-insensitive
@@ -56,10 +53,7 @@ const originalQuery = Pool.prototype.query;
       e => e.tenant_id === activeTenantId && e.name.toLowerCase() === nameParam.toLowerCase()
     );
 
-    return {
-      rowCount: found ? 1 : 0,
-      rows: found ? [found] : [],
-    };
+    return { rowCount: found ? 1 : 0, rows: found ? [found] : [] };
   }
 
   // 3. kg_entities INSERT
@@ -77,10 +71,7 @@ const originalQuery = Pool.prototype.query;
     };
     mockEntitiesStore.push(newEntity);
 
-    return {
-      rowCount: 1,
-      rows: [newEntity],
-    };
+    return { rowCount: 1, rows: [newEntity] };
   }
 
   // 4. kg_entities UPDATE
@@ -92,17 +83,13 @@ const originalQuery = Pool.prototype.query;
       entity.properties = typeof propertiesJson === "string" ? JSON.parse(propertiesJson) : propertiesJson;
       entity.updated_at = new Date().toISOString();
     }
-    return {
-      rowCount: entity ? 1 : 0,
-      rows: entity ? [entity] : [],
-    };
+    return { rowCount: entity ? 1 : 0, rows: entity ? [entity] : [] };
   }
 
   // 5. kg_relationships SELECT
   if (normalizedSql.includes("select") && normalizedSql.includes("kg_relationships") && normalizedSql.includes("source_entity_id")) {
     const activeTenantId = TenantContextManager.getRequiredTenantId();
 
-    // If it's the 1-hop sub-graph query (with JOINs)
     if (normalizedSql.includes("join kg_entities s") && normalizedSql.includes("join kg_entities t")) {
       const entityId = params[0] as string;
       const matchedRels = mockRelationshipsStore.filter(
@@ -127,13 +114,9 @@ const originalQuery = Pool.prototype.query;
         };
       });
 
-      return {
-        rowCount: rows.length,
-        rows
-      };
+      return { rowCount: rows.length, rows };
     }
 
-    // Otherwise standard SELECT
     const [sourceId, targetId, relType] = params as any[];
     const found = mockRelationshipsStore.find(
       r => r.tenant_id === activeTenantId &&
@@ -142,10 +125,7 @@ const originalQuery = Pool.prototype.query;
            r.relationship_type.toLowerCase() === relType.toLowerCase()
     );
 
-    return {
-      rowCount: found ? 1 : 0,
-      rows: found ? [found] : [],
-    };
+    return { rowCount: found ? 1 : 0, rows: found ? [found] : [] };
   }
 
   // 6. kg_relationships INSERT
@@ -164,28 +144,16 @@ const originalQuery = Pool.prototype.query;
     };
     mockRelationshipsStore.push(newRel);
 
-    return {
-      rowCount: 1,
-      rows: [newRel],
-    };
+    return { rowCount: 1, rows: [newRel] };
   }
 
   // 7. Transaction control SQLs safely resolved for offline simulation
   if (normalizedSql.includes("begin") || normalizedSql.includes("commit") || normalizedSql.includes("rollback") || normalizedSql.includes("set local")) {
-    return {
-      rowCount: 1,
-      rows: [],
-      command: "SELECT",
-      oid: 0,
-      fields: []
-    };
+    return { rowCount: 1, rows: [], command: "SELECT", oid: 0, fields: [] };
   }
 
   // Fallback
-  return {
-    rowCount: 0,
-    rows: []
-  };
+  return { rowCount: 0, rows: [] };
 };
 
 export async function testDocumentIngestionPipeline() {
@@ -195,7 +163,6 @@ export async function testDocumentIngestionPipeline() {
   const ingestionService = new DocumentIngestionService();
   const tenantId = "org-test-ingestion-001";
 
-  // Ingest document text containing keywords to trigger mock graph extraction
   const docText = "Optimus AI solves brand intelligence problems by using Gemini models beautifully.";
 
   console.log("  * Executing Document Ingestion Process...");
@@ -203,7 +170,6 @@ export async function testDocumentIngestionPipeline() {
     return await ingestionService.ingestDocument(docText, { source: "test-suite" });
   });
 
-  // Verify vector chunks
   if (ingestionResult.totalChunks !== 1) {
     throw new Error(`Ingestion Integration Error: Expected 1 chunk, got ${ingestionResult.totalChunks}`);
   }
@@ -213,7 +179,6 @@ export async function testDocumentIngestionPipeline() {
     throw new Error(`Ingestion Integration Error: KG extraction failed: ${chunkRes.graphError}`);
   }
 
-  // Check stored items
   if (mockEmbeddingsStore.length !== 1) {
     throw new Error("Ingestion Integration Error: Chunks were not indexed inside vector-store.");
   }
@@ -226,22 +191,18 @@ export async function testDocumentIngestionPipeline() {
     throw new Error(`Ingestion Integration Error: Expected 1 relationship, found ${mockRelationshipsStore.length}`);
   }
 
-  // Verify traceability source_chunk_id
   const rel = mockRelationshipsStore[0];
   if (rel.properties.source_chunk_id !== chunkRes.chunkId) {
     throw new Error(`Traceability Error: Expected source_chunk_id to match chunk ID ${chunkRes.chunkId}`);
   }
 
   console.log("  * Testing sub-graph 1-hop Query logic...");
-  // Simulate the sub-graph query from API route
   await TenantContextManager.runWithTenantContext(tenantId, "user-01", "req-02", async () => {
     const pg = PostgresClient.getInstance();
 
-    // Query entity
     const entRes = await pg.query("SELECT id, name FROM kg_entities WHERE LOWER(name) = LOWER($1) LIMIT 1", ["optimus ai"]);
     const entity = entRes.rows[0];
 
-    // Query direct relations
     const relRes = await pg.query(
       `SELECT r.id, s.name as source_name, t.name as target_name, r.relationship_type
        FROM kg_relationships r
@@ -270,6 +231,7 @@ export function restoreOriginalPool() {
   Pool.prototype.query = originalQuery;
 }
 
+// ✅ FIXED: Properly closed the catch block for the first test suite
 if (require.main === module) {
   testDocumentIngestionPipeline()
     .then(() => restoreOriginalPool())
@@ -287,7 +249,7 @@ if (require.main === module) {
  */
 
 import { VectorStoreService } from "../../../src/services/knowledge-graph/vector-store";
-import { TenantContextManager, TenantContextViolationException } from "../../../src/core/database/tenant-context";
+import { TenantContextViolationException } from "../../../src/core/database/tenant-context";
 
 class MockFailingVectorStore extends VectorStoreService {
   override async insertEmbedding(
@@ -309,7 +271,7 @@ export async function testDocumentIngestion() {
   const tenantAId = "org-enterprise-01";
   const tenantBId = "org-startup-02";
 
-  // 1. Test Ingestion without active Tenant Context (must throw TenantContextViolationException)
+  // 1. Test Ingestion without active Tenant Context
   console.log("  * Testing Tenant Context enforcement...");
   const orphanedService = new DocumentIngestionService();
   try {
@@ -322,7 +284,7 @@ export async function testDocumentIngestion() {
     console.log("    ✅ Successfully blocked ingestion outside active Tenant Context.");
   }
 
-  // 2. Test Success Pipeline Flow (under Tenant A context)
+  // 2. Test Success Pipeline Flow
   console.log("  * Testing normal success ingestion flow...");
   const ingestionService = new DocumentIngestionService();
   const rawText = "موتور بهینه‌سازی جی ای او. اپتیموس بهترین راهکار گراف دانش است؛ حتماً استفاده کنید!";
@@ -343,7 +305,6 @@ export async function testDocumentIngestion() {
   console.log("  * Testing partial success error handling...");
   const failingVectorStore = new MockFailingVectorStore();
   const failingIngestionService = new DocumentIngestionService(failingVectorStore);
-  // This text contains a sentence that will trigger a simulated error
   const partialRawText = "بخش اول متن بسیار خوب است. بخش دوم فیلتر_خطا حاوی ارور شبیه‌سازی شده است. بخش سوم هم بدون مشکل است.";
 
   const partialResult = await TenantContextManager.runWithTenantContext(tenantAId, "user-01", "req-ingest-02", async () => {
@@ -365,15 +326,13 @@ export async function testDocumentIngestion() {
   console.log("  * Testing end-to-end multi-tenant isolation...");
   const isolationText = "اطلاعات محرمانه سازمانی آلفا برای امنیت پیشرفته.";
 
-  // Ingest under Tenant A context
   await TenantContextManager.runWithTenantContext(tenantAId, "user-01", "req-ingest-03", async () => {
     await ingestionService.ingestDocument(isolationText, { source: "internal-alpha" });
   });
 
-  // Query under Tenant A context: Should find the ingested content
   await TenantContextManager.runWithTenantContext(tenantAId, "user-01", "req-ingest-04", async () => {
     const vectorStore = new VectorStoreService();
-    const queryEmbedding = Array.from({ length: 768 }, () => 0.01); // Mock embedding close enough
+    const queryEmbedding = Array.from({ length: 768 }, () => 0.01);
     const results = await vectorStore.findSimilarEmbeddings(tenantAId, queryEmbedding, 10);
 
     const found = results.some(r => r.contentChunk.includes("اطلاعات محرمانه سازمانی آلفا"));
@@ -382,7 +341,6 @@ export async function testDocumentIngestion() {
     }
   });
 
-  // Query under Tenant B context: Should NOT find Tenant A's document (proving isolation)
   await TenantContextManager.runWithTenantContext(tenantBId, "user-02", "req-ingest-05", async () => {
     const vectorStore = new VectorStoreService();
     const queryEmbedding = Array.from({ length: 768 }, () => 0.01);

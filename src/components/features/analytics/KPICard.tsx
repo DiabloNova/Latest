@@ -121,17 +121,17 @@ export const KPICard: React.FC<KPICardProps> = ({
 
   if (loading) {
     return (
-      <Card className="animate-pulse p-6">
+      <Card className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-3 flex-1">
-            <div className="h-3 w-2/3 bg-white/5 rounded animate-pulse" />
-            <div className="h-8 w-1/2 bg-white/5 rounded animate-pulse" />
+            <div className="h-3 w-2/3 skeleton rounded" />
+            <div className="h-8 w-1/2 skeleton rounded" />
           </div>
-          <div className="w-10 h-10 bg-white/5 rounded-lg animate-pulse" />
+          <div className="w-10 h-10 skeleton rounded-lg" />
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <div className="h-5 w-12 bg-white/5 rounded-full animate-pulse" />
-          <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+          <div className="h-5 w-12 skeleton rounded-full" />
+          <div className="h-3 w-20 skeleton rounded" />
         </div>
       </Card>
     );
@@ -141,22 +141,19 @@ export const KPICard: React.FC<KPICardProps> = ({
   const isNegative = changeType === "error";
 
   return (
-    <div ref={elementRef} className="h-full">
-      <Card hoverable className="p-6 h-full flex flex-col justify-between relative group overflow-hidden">
-        {/* Subtle hover background highlight */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1F76F9]/[0.01] to-[#FF6F41]/[0.01] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block opacity-80">
-              {title}
-            </span>
-            <span
-              className="text-2xl font-black text-[var(--text-primary)] block font-display tracking-tight transition-all duration-300"
-              style={{ textShadow: "0 2px 10px rgba(0,0,0,0.12)" }}
-            >
-              {display}
-            </span>
+    <Card hoverable className="h-full flex flex-col justify-between">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block">
+            {title}
+          </span>
+          <span className="text-2xl font-black text-[var(--text-primary)] block font-display tracking-tight">
+            {value}
+          </span>
+        </div>
+        {Icon && (
+          <div className="p-2.5 bg-[var(--color-info-bg)] border border-[var(--border)] rounded-[var(--radius-md)] text-[var(--color-primary-600)]">
+            <Icon size={18} className="rtl:-scale-x-100" />
           </div>
           {Icon && (
             <div className="p-3 bg-white/[0.02] border border-white/10 rounded-xl text-[#1F76F9] shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:bg-[#1F76F9]/5 group-hover:border-[#1F76F9]/20 group-hover:shadow-[0_0_15px_rgba(31,118,249,0.15)]">

@@ -11,15 +11,31 @@ export interface TabItem {
 export interface TabsProps {
   tabs: TabItem[];
   defaultTabId?: string;
+  activeTabId?: string;
+  onTabChange?: (tabId: string) => void;
   className?: string;
 }
 
 export const Tabs: React.FC<TabsProps> = ({
   tabs,
   defaultTabId,
+  activeTabId,
+  onTabChange,
   className = "",
 }) => {
-  const [activeTab, setActiveTab] = useState(defaultTabId || tabs[0]?.id);
+  const [localActiveTab, setLocalActiveTab] = useState(defaultTabId || tabs[0]?.id);
+
+  const isControlled = activeTabId !== undefined;
+  const activeTab = isControlled ? activeTabId : localActiveTab;
+
+  const handleTabClick = (tabId: string) => {
+    if (!isControlled) {
+      setLocalActiveTab(tabId);
+    }
+    if (onTabChange) {
+      onTabChange(tabId);
+    }
+  };
 
   return (
     <div className={`w-full ${className}`}>
@@ -31,7 +47,7 @@ export const Tabs: React.FC<TabsProps> = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabClick(tab.id)}
                 className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-all duration-150 ${
                   isActive
                     ? "border-[var(--color-accent-600)] text-[var(--color-accent-600)] font-semibold"

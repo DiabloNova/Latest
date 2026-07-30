@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session, UserRole } from "@/types/auth";
+import { loginAction, logoutAction } from "@/app/actions/auth";
 
 interface AuthContextType {
   session: Session;
@@ -49,6 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const resolvedUser = initialUser;
 
+    // Sync session server-side cookies
+    loginAction(resolvedUser.email, resolvedUser.workspaceId, resolvedUser.id).catch((err) => {
+      console.error("Failed to sync initial session cookies:", err);
+    });
+
     // We update state asynchronously or queue it appropriately
     const timer = setTimeout(() => {
       setSession({
@@ -76,6 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     localStorage.setItem("auth_session_user", JSON.stringify(mockUser));
+
+    // Secure server-side cookie setting
+    await loginAction(mockUser.email, mockUser.workspaceId, mockUser.id);
+
     setSession({
       user: mockUser,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -88,6 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     localStorage.removeItem("auth_session_user");
+
+    // Clear secure server-side cookies
+    await logoutAction();
+
     setSession({
       user: null,
       expiresAt: null,
