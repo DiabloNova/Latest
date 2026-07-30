@@ -1,86 +1,73 @@
+"use client";
+
 import React from "react";
-import { Card } from "@/components/Card";
-import { Badge } from "@/components/Badge";
-import { ArrowUpRight, ArrowDownRight, LucideIcon } from "lucide-react";
+import { motion } from "framer-motion";
+import { LucideIcon } from "lucide-react";
 
 interface KPICardProps {
   title: string;
   value: string | number;
-  change?: string | number;
-  changeType?: "success" | "error" | "warning" | "info";
-  description?: string;
+  trend?: "up" | "down" | "neutral";
+  trendValue?: string;
   icon?: LucideIcon;
-  loading?: boolean;
+  delay?: number;
 }
 
-/**
- * Premium glassmorphic KPI Card component.
- * Displays key metrics with trend indicators and Lucide icons.
- */
-export const KPICard: React.FC<KPICardProps> = ({
+export default function KPICard({
   title,
   value,
-  change,
-  changeType = "info",
-  description,
+  trend,
+  trendValue,
   icon: Icon,
-  loading = false,
-}) => {
-  if (loading) {
-    return (
-      <Card className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-3 flex-1">
-            <div className="h-3 w-2/3 skeleton rounded" />
-            <div className="h-8 w-1/2 skeleton rounded" />
-          </div>
-          <div className="w-10 h-10 skeleton rounded-lg" />
-        </div>
-        <div className="mt-6 flex items-center justify-between">
-          <div className="h-5 w-12 skeleton rounded-full" />
-          <div className="h-3 w-20 skeleton rounded" />
-        </div>
-      </Card>
-    );
-  }
-
-  const isPositive = changeType === "success";
-  const isNegative = changeType === "error";
-
+  delay = 0,
+}: KPICardProps) {
   return (
-    <Card hoverable className="h-full flex flex-col justify-between">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-6 backdrop-blur-xl shadow-[var(--glass-shadow)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--sky-blue-500)]/40 hover:shadow-[0_20px_40px_rgba(56,189,248,0.15)]"
+    >
+      {/* Subtle gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--sky-blue-500)] to-[var(--orange-500)] opacity-0 transition-opacity duration-300 group-hover:opacity-5 pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <h3 className="text-sm font-medium text-[var(--text-muted)]">
             {title}
-          </span>
-          <span className="text-2xl font-black text-[var(--text-primary)] block font-display tracking-tight">
-            {value}
-          </span>
+          </h3>
+          {Icon && (
+            <div className="rounded-xl bg-[var(--muted-surface)] p-2.5 text-[var(--color-primary-600)] transition-colors duration-300 group-hover:bg-[var(--color-primary-600)] group-hover:text-white">
+              <Icon size={20} className="rtl:-scale-x-100" />
+            </div>
+          )}
         </div>
-        {Icon && (
-          <div className="p-2.5 bg-[var(--color-info-bg)] border border-[var(--border)] rounded-[var(--radius-md)] text-[var(--color-primary-600)]">
-            <Icon size={18} className="rtl:-scale-x-100" />
+
+        {/* Value */}
+        <div className="text-3xl font-bold tracking-tight text-[var(--text-primary)] drop-shadow-sm">
+          {value}
+        </div>
+
+        {/* Trend (Optional) */}
+        {trend && trendValue && (
+          <div className="flex items-center gap-2 text-sm">
+            <span
+              className={`flex items-center gap-1 font-medium ${
+                trend === "up"
+                  ? "text-[var(--color-success)]"
+                  : trend === "down"
+                  ? "text-[var(--color-error)]"
+                  : "text-[var(--text-muted)]"
+              }`}
+            >
+              {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
+              {trendValue}
+            </span>
+            <span className="text-[var(--text-muted)]">نسبت به دوره قبل</span>
           </div>
         )}
       </div>
-
-      <div className="mt-4 flex items-center justify-between text-[10px] gap-2">
-        {change && (
-          <Badge variant={changeType}>
-            <span className="flex items-center gap-0.5">
-              {isPositive && <ArrowUpRight size={12} />}
-              {isNegative && <ArrowDownRight size={12} />}
-              {change}
-            </span>
-          </Badge>
-        )}
-        {description && (
-          <span className="text-[var(--text-muted)] truncate max-w-[150px] text-end">
-            {description}
-          </span>
-        )}
-      </div>
-    </Card>
+    </motion.div>
   );
-};
+}
