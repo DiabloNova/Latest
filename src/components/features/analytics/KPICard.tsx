@@ -13,7 +13,7 @@ interface KPICardProps {
   delay?: number;
 }
 
-export default function KPICard({
+export function KPICard({
   title,
   value,
   trend,
