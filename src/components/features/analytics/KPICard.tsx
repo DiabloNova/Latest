@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/Badge";
 import { ArrowUpRight, ArrowDownRight, LucideIcon } from "lucide-react";
@@ -14,8 +14,99 @@ interface KPICardProps {
 }
 
 /**
+ * Lightweight, high-performance, viewport-triggered count-up hook.
+ * Formats numbers beautifully (e.g. adding commas) and respects Persian numerals natively.
+ */
+function useCountUp(value: string | number, duration = 1500) {
+  const [display, setDisplay] = useState(() => String(value));
+  const [hasStarted, setHasStarted] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setHasStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const str = String(value);
+    const hasPersian = /[۰-۹]/.test(str);
+
+    // Convert Persian digits to English for mathematical animation
+    const englishStr = str.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776));
+
+    // Extract first coherent number sequence
+    const match = englishStr.match(/([+-]?\d[\d,.]*)/);
+    if (!match) {
+      return;
+    }
+
+    const numStr = match[1].replace(/,/g, "");
+    const target = parseFloat(numStr) || 0;
+    const hasDecimals = numStr.includes(".");
+    const decimalPlaces = hasDecimals ? numStr.split(".")[1].length : 0;
+
+    const index = str.indexOf(match[1]);
+    const prefix = str.substring(0, index);
+    const suffix = str.substring(index + match[1].length);
+
+    let start: number | null = null;
+    let animId: number;
+
+    const step = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const progress = timestamp - start;
+      const percentage = Math.min(progress / duration, 1);
+
+      // Cubic ease-out curve
+      const easeOut = 1 - Math.pow(1 - percentage, 3);
+      const current = easeOut * target;
+
+      let formatted = current.toFixed(decimalPlaces);
+      if (!hasDecimals) {
+        formatted = Math.floor(current).toLocaleString("en-US");
+      } else {
+        const parts = formatted.split(".");
+        parts[0] = parseInt(parts[0], 10).toLocaleString("en-US");
+        formatted = parts.join(".");
+      }
+
+      // Convert back to Persian digits if original value utilized them
+      if (hasPersian) {
+        formatted = formatted.replace(/\d/g, (d) => String.fromCharCode(d.charCodeAt(0) + 1776));
+      }
+
+      setDisplay(`${prefix}${formatted}${suffix}`);
+
+      if (progress < duration) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setDisplay(str); // ensure exact terminal value is drawn
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [value, duration, hasStarted]);
+
+  return { elementRef, display };
+}
+
+/**
  * Premium glassmorphic KPI Card component.
- * Displays key metrics with trend indicators and Lucide icons.
+ * Displays key metrics with viewport-triggered count-up animations and a micro-interactive trend badge.
  */
 export const KPICard: React.FC<KPICardProps> = ({
   title,
@@ -26,6 +117,8 @@ export const KPICard: React.FC<KPICardProps> = ({
   icon: Icon,
   loading = false,
 }) => {
+  const { elementRef, display } = useCountUp(value, 1200);
+
   if (loading) {
     return (
       <Card className="p-5">
@@ -62,25 +155,35 @@ export const KPICard: React.FC<KPICardProps> = ({
           <div className="p-2.5 bg-[var(--color-info-bg)] border border-[var(--border)] rounded-[var(--radius-md)] text-[var(--color-primary-600)]">
             <Icon size={18} className="rtl:-scale-x-100" />
           </div>
-        )}
-      </div>
+          {Icon && (
+            <div className="p-3 bg-white/[0.02] border border-white/10 rounded-xl text-[#1F76F9] shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:bg-[#1F76F9]/5 group-hover:border-[#1F76F9]/20 group-hover:shadow-[0_0_15px_rgba(31,118,249,0.15)]">
+              <Icon size={18} className="rtl:-scale-x-100" />
+            </div>
+          )}
+        </div>
 
-      <div className="mt-4 flex items-center justify-between text-[10px] gap-2">
-        {change && (
-          <Badge variant={changeType}>
-            <span className="flex items-center gap-0.5">
-              {isPositive && <ArrowUpRight size={12} />}
-              {isNegative && <ArrowDownRight size={12} />}
-              {change}
+        <div className="mt-5 flex items-center justify-between text-[10px] gap-2">
+          {change && (
+            <Badge
+              variant={changeType}
+              className={`py-1 px-2.5 rounded-full transition-all duration-300 ${
+                isPositive ? "animate-pulse-subtle bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : ""
+              }`}
+            >
+              <span className="flex items-center gap-1 font-bold">
+                {isPositive && <ArrowUpRight size={12} />}
+                {isNegative && <ArrowDownRight size={12} />}
+                {change}
+              </span>
+            </Badge>
+          )}
+          {description && (
+            <span className="text-[var(--text-muted)] truncate max-w-[160px] text-end opacity-85">
+              {description}
             </span>
-          </Badge>
-        )}
-        {description && (
-          <span className="text-[var(--text-muted)] truncate max-w-[150px] text-end">
-            {description}
-          </span>
-        )}
-      </div>
-    </Card>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 };

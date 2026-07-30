@@ -37,7 +37,7 @@ export function ThemeProvider({
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(newTheme);
-    localStorage.setItem("theme", newTheme);
+    localStorage.setItem("optimus-theme", newTheme);
     setThemeState(newTheme);
   }, []);
 
@@ -54,7 +54,7 @@ export function ThemeProvider({
   }, []);
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as Theme | null;
+    const storedTheme = localStorage.getItem("optimus-theme") as Theme | null;
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     const initialTheme = storedTheme || systemTheme;
 

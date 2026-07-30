@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
 import { Dropdown } from "@/components/Dropdown";
 import { Button } from "@/components/Button";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import {
   LayoutDashboard,
   BrainCircuit,
